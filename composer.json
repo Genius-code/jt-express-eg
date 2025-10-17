@@ -20,6 +20,11 @@
       "Appleera1\\JtExpressEg\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Appleera1\\JtExpressEg\\Tests\\": "tests/"
+    }
+  },
   "extra": {
     "laravel": {
       "providers": [
