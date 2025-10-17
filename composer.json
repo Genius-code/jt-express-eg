@@ -1,0 +1,40 @@
+{
+  "name": "genuius-code/jt-express-eg",
+  "description": "Laravel SDK for J&T Express Egypt",
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=8.1",
+    "illuminate/support": "^10.0|^11.0",
+    "illuminate/http": "^10.0|^11.0",
+    "illuminate/contracts": "^10.0|^11.0",
+    "guzzlehttp/guzzle": "^7.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0",
+    "phpunit/phpunit": "^10.0",
+    "mockery/mockery": "^1.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Appleera1\\JtExpressEg\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Appleera1\\JtExpressEg\\JTExpressServiceProvider"
+      ],
+      "aliases": {
+        "JTExpress": "Appleera1\\JtExpressEg\\Facades\\JTExpress"
+      }
+    }
+  },
+  "authors": [
+    {
+      "name": "Genuis-code",
+      "email": "moh.aly8890@gmail.com"
+    }
+  ],
+  "minimum-stability": "stable"
+}
