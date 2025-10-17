@@ -1,10 +1,10 @@
 <?php
 
 return [
-    'apiAccount'   => env('JT_API_ACCOUNT', '843760577498058771'),
+    'apiAccount'   => env('JT_API_ACCOUNT', '292508153084379141'),
     'privateKey'   => env('JT_PRIVATE_KEY'),
-    'customerCode' => env('JT_CUSTOMER_CODE', 'J0086008127'),
-    'customerPwd'  => env('JT_CUSTOMER_PWD', 'D7E4E14E4ADF9ED1CA1A5FA859635821'),
+    'customerCode' => env('JT_CUSTOMER_CODE', 'J0086000020'),
+    'customerPwd'  => env('JT_CUSTOMER_PWD', '4AF43B0704D20349725BF0BBB64051BB'),
 
     'sender' => [
         'name'      => env('JT_SENDER_NAME', 'Test Sender'),
