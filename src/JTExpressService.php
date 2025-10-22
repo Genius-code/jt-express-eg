@@ -2,160 +2,100 @@
 
 namespace Appleera1\JtExpressEg;
 
+use Appleera1\JtExpressEg\Builders\OrderRequestBuilder;
+use Appleera1\JtExpressEg\Exceptions\InvalidOrderDataException;
+use Appleera1\JtExpressEg\Formatters\AddressFormatter;
+use Appleera1\JtExpressEg\Formatters\OrderItemFormatter;
+use Appleera1\JtExpressEg\Handlers\OrderResponseHandler;
+use Appleera1\JtExpressEg\Http\JTExpressApiClient;
+use Appleera1\JtExpressEg\Validators\OrderDataValidator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class JTExpressService
 {
-    protected mixed $apiAccount;
-    protected mixed $privateKey;
-    protected mixed $customerCode;
-    protected mixed $customerPwd;
+    protected string $apiAccount;
+    protected string $privateKey;
+    protected string $customerCode;
+    protected string $customerPwd;
     protected string $baseUrl;
+
+    private JTExpressApiClient $apiClient;
+    private OrderResponseHandler $responseHandler;
+    private AddressFormatter $addressFormatter;
+    private OrderItemFormatter $itemFormatter;
+    private OrderDataValidator $validator;
 
     public function __construct()
     {
-        $this->apiAccount   = config('jt-express.apiAccount', '292508153084379141');
-        $this->privateKey   = config('jt-express.privateKey', 'a0a1047cce70493c9d5d29704f05d0d9');
+        $this->apiAccount = config('jt-express.apiAccount', '292508153084379141');
+        $this->privateKey = config('jt-express.privateKey', 'a0a1047cce70493c9d5d29704f05d0d9');
         $this->customerCode = config('jt-express.customerCode', 'J0086000020');
-        $this->customerPwd  = config('jt-express.customerPwd', '4AF43B0704D20349725BF0BBB64051BB');
+        $this->customerPwd = config('jt-express.customerPwd', '4AF43B0704D20349725BF0BBB64051BB');
 
         $this->baseUrl = config('app.env') === 'production'
             ? 'https://openapi.jtjms-eg.com'
             : 'https://demoopenapi.jtjms-eg.com';
-    }
 
-    /**
-     * Calculate signature for bizContent digest
-     * sign($CUSTOMER_CODE, $customerPwd, $PRIVATE_KEY)
-     */
-    protected function calculateBizContentDigest(string $customerCode, string $customerPwd, string $privateKey): string
-    {
-        $str = $customerCode . $customerPwd . $privateKey;
-        return base64_encode(md5($str, true));
-    }
-
-    /**
-     * Parameter encryption for request header digest
-     * encrypt($params, $key)
-     */
-    protected function calculateHeaderDigest(string $bizContent, string $privateKey): string
-    {
-        $str = $bizContent . $privateKey;
-        return base64_encode(md5($str, true));
-    }
-
-    protected function getHeaders(string $digest, string $timestamp): array
-    {
-        return [
-            'Accept' => 'application/json',
-            'Content-Type' => 'application/x-www-form-urlencoded',
-            'apiAccount' => $this->apiAccount,
-            'digest' => $digest,
-            'timestamp' => $timestamp,
-        ];
+        // Initialize dependencies
+        $this->apiClient = new JTExpressApiClient($this->baseUrl);
+        $this->responseHandler = new OrderResponseHandler();
+        $this->addressFormatter = new AddressFormatter();
+        $this->itemFormatter = new OrderItemFormatter();
+        $this->validator = new OrderDataValidator();
     }
 
     /**
      * Create a new order
+     *
+     * @param array $orderData Order data including shippingAddress and orderItems
+     * @return array Response data
      */
-    public function createOrder($orderData)
+    public function createOrder(array $orderData): array
     {
         try {
-            $timestamp = strval(round(microtime(true) * 1000));
+            // Validate order data
+            $this->validator->validate($orderData);
 
+            // Generate timestamp
+            $timestamp = $this->generateTimestamp();
+
+            // Calculate digests
             $bizContentDigest = $this->calculateBizContentDigest(
                 $this->customerCode,
                 $this->customerPwd,
                 $this->privateKey
             );
 
-            $txlogisticId = $orderData['id'] ?? 'ORDER' . str_pad((string)rand(0, 9999999999), 10, "0", STR_PAD_LEFT);
+            // Format address and items
+            $receiver = $this->addressFormatter->formatReceiver($orderData['shippingAddress'] ?? []);
+            $sender = $this->addressFormatter->formatSender();
+            $items = $this->itemFormatter->format($orderData['orderItems'] ?? []);
 
-            $bizContentArray = [
-                'customerCode' => $this->customerCode,
-                'digest' => $bizContentDigest,
-                'deliveryType' => $orderData['deliveryType'] ?? '04',
-                'payType' => $orderData['payType'] ?? 'PP_PM',
-                'expressType' => $orderData['expressType'] ?? 'EZ',
-                'network' => $orderData['network'] ?? '',
-                'length' => (float)($orderData['length'] ?? 0),
-                'width' => (float)($orderData['width'] ?? 10),
-                'height' => (float)($orderData['height'] ?? 0),
-                'weight' => (float)($orderData['weight'] ?? 1),
-                'sendStartTime' => $orderData['sendStartTime'] ?? Carbon::now()->format('Y-m-d H:i:s'),
-                'sendEndTime' => $orderData['sendEndTime'] ?? Carbon::now()->addDay()->format('Y-m-d H:i:s'),
-                'itemsValue' => (string)($orderData['total'] ?? ''),
-                'remark' => $orderData['remark'] ?? '',
-                'invoceNumber' => $orderData['invoiceNumber'] ?? '',
-                'packingNumber' => $orderData['packingNumber'] ?? '',
-                'batchNumber' => $orderData['batchNumber'] ?? '',
-                'txlogisticId' => $txlogisticId,
-                'billCode' => $orderData['billCode'] ?? '',
-                'operateType' => (int)($orderData['operateType'] ?? 1),
-                'orderType' => (string)($orderData['orderType'] ?? '1'),
-                'serviceType' => $orderData['serviceType'] ?? '01',
-                'expectDeliveryStartTime' => $orderData['expectDeliveryStartTime'] ?? '',
-                'expectDeliveryEndTime' => $orderData['expectDeliveryEndTime'] ?? '',
-                'goodsType' => $orderData['goodsType'] ?? 'ITN1',
-                'totalQuantity' => (string)($orderData['totalQuantity'] ?? '1'),
-                'offerFee' => (string)($orderData['offerFee'] ?? '0'),
-                'priceCurrency' => 'EGP',
-                'receiver' => $this->formatReceiverData($orderData['shippingAddress'] ?? []),
-                'sender' => $this->formatSenderData(),
-                'items' => $this->formatItems($orderData['orderItems'] ?? []),
-            ];
+            // Build order request
+            $builder = new OrderRequestBuilder($this->customerCode, $bizContentDigest);
+            $orderRequest = $builder->build($orderData, $receiver, $sender, $items);
 
-            $bizContentArray = array_filter($bizContentArray, fn($value) => $value !== '' && $value !== null);
-
-            $bizContentJson = json_encode($bizContentArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            // Prepare request
+            $bizContentJson = json_encode($orderRequest->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             $headerDigest = $this->calculateHeaderDigest($bizContentJson, $this->privateKey);
             $headers = $this->getHeaders($headerDigest, $timestamp);
 
-            Log::info('J&T Express Create Order Request', [
-                'url' => $this->baseUrl . '/webopenplatformapi/api/order/addOrder',
-                'timestamp' => $timestamp,
-                'api_account' => $this->apiAccount,
-                'customer_code' => $this->customerCode,
-                'header_digest' => $headerDigest,
-                'biz_content_digest' => $bizContentDigest,
-                'tx_logistic_id' => $txlogisticId,
-                'biz_content_length' => strlen($bizContentJson)
+            // Send request
+            $response = $this->apiClient->createOrder($bizContentJson, $headers);
+
+            // Handle response
+            return $this->responseHandler->handle($response);
+
+        } catch (InvalidOrderDataException $e) {
+            Log::error('J&T Express Create Order Validation Failed', [
+                'message' => $e->getMessage(),
             ]);
-
-            $response = Http::withHeaders($headers)
-                ->asForm()
-                ->timeout(30)
-                ->post($this->baseUrl . '/webopenplatformapi/api/order/addOrder', [
-                    'bizContent' => $bizContentJson
-                ]);
-
-            $responseData = $response->json();
-
-            Log::info('J&T Express Create Order Response', [
-                'status' => $response->status(),
-                'response' => $responseData
-            ]);
-
-            if ($response->successful() && isset($responseData['code']) && $responseData['code'] == '1') {
-                return [
-                    'success' => true,
-                    'data' => $responseData,
-                    'status_code' => $response->status(),
-                    'waybill_code' => $responseData['data']['billCode'] ?? null,
-                    'tx_logistic_id' => $responseData['data']['txlogisticId'] ?? $txlogisticId,
-                    'sorting_code' => $responseData['data']['sortingCode'] ?? null,
-                    'last_center_name' => $responseData['data']['lastCenterName'] ?? null,
-                ];
-            }
 
             return [
                 'success' => false,
-                'error' => $responseData['msg'] ?? 'Unknown error',
-                'code' => $responseData['code'] ?? null,
-                'data' => $responseData,
-                'status_code' => $response->status()
+                'error' => $e->getMessage(),
+                'status_code' => 400
             ];
 
         } catch (\Exception $e) {
@@ -174,11 +114,15 @@ class JTExpressService
 
     /**
      * Cancel an order
+     *
+     * @param string $txlogisticId Transaction logistic ID
+     * @param string $reason Cancellation reason
+     * @return array Response data
      */
     public function cancelOrder(string $txlogisticId, string $reason = 'Customer request'): array
     {
         try {
-            $timestamp = strval(round(microtime(true) * 1000));
+            $timestamp = $this->generateTimestamp();
 
             $bizContentDigest = $this->calculateBizContentDigest(
                 $this->customerCode,
@@ -205,26 +149,13 @@ class JTExpressService
                     'bizContent' => $bizContentJson
                 ]);
 
-            $responseData = $response->json();
-
-            if ($response->successful() && isset($responseData['code']) && $responseData['code'] == '1') {
-                return [
-                    'success' => true,
-                    'data' => $responseData,
-                    'status_code' => $response->status()
-                ];
-            }
-
-            return [
-                'success' => false,
-                'error' => $responseData['msg'] ?? 'Unknown error',
-                'code' => $responseData['code'] ?? null,
-                'data' => $responseData,
-                'status_code' => $response->status()
-            ];
+            return $this->responseHandler->handle($response);
 
         } catch (\Exception $e) {
-            Log::error('J&T Express Cancel Order Exception: ' . $e->getMessage());
+            Log::error('J&T Express Cancel Order Exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return [
                 'success' => false,
@@ -236,11 +167,14 @@ class JTExpressService
 
     /**
      * Track an order by waybill code
+     *
+     * @param string $billCode Waybill code
+     * @return array Tracking information
      */
     public function trackOrder(string $billCode): array
     {
         try {
-            $timestamp = strval(round(microtime(true) * 1000));
+            $timestamp = $this->generateTimestamp();
 
             $bizContentArray = [
                 'billCodes' => $billCode
@@ -275,7 +209,10 @@ class JTExpressService
             ];
 
         } catch (\Exception $e) {
-            Log::error('J&T Express Track Order Exception: ' . $e->getMessage());
+            Log::error('J&T Express Track Order Exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return [
                 'success' => false,
@@ -286,12 +223,15 @@ class JTExpressService
     }
 
     /**
-     * Get order details
+     * Get order details by serial numbers
+     *
+     * @param string|array $serialNumbers Serial number(s)
+     * @return array Order details
      */
-    public function getOrders($serialNumbers): array
+    public function getOrders(string|array $serialNumbers): array
     {
         try {
-            $timestamp = strval(round(microtime(true) * 1000));
+            $timestamp = $this->generateTimestamp();
 
             $bizContentDigest = $this->calculateBizContentDigest(
                 $this->customerCode,
@@ -317,25 +257,13 @@ class JTExpressService
                     'bizContent' => $bizContentJson
                 ]);
 
-            $responseData = $response->json();
-
-            if ($response->successful() && isset($responseData['code']) && $responseData['code'] == '1') {
-                return [
-                    'success' => true,
-                    'data' => $responseData,
-                    'status_code' => $response->status()
-                ];
-            }
-
-            return [
-                'success' => false,
-                'error' => $responseData['msg'] ?? 'Unknown error',
-                'data' => $responseData,
-                'status_code' => $response->status()
-            ];
+            return $this->responseHandler->handle($response);
 
         } catch (\Exception $e) {
-            Log::error('J&T Express Get Orders Exception: ' . $e->getMessage());
+            Log::error('J&T Express Get Orders Exception', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
 
             return [
                 'success' => false,
@@ -347,15 +275,19 @@ class JTExpressService
 
     /**
      * Print order (waybill)
+     *
+     * @param string $billCode Waybill code
+     * @param string $printSize Print size (default: '0')
+     * @param int $printCode Print code (default: 0)
+     * @return array Print data
      */
-    public function printOrder(string $billCode, string $printSize = '0', int $printCode = 0)
+    public function printOrder(string $billCode, string $printSize = '0', int $printCode = 0): array
     {
         try {
-            $timestamp = strval(round(microtime(true) * 1000));
+            $timestamp = $this->generateTimestamp();
 
             $bizContentArray = [
                 'customerCode' => $this->customerCode,
-                // some implementations use a precomputed digest for print; expose via config
                 'digest' => (string)config('jt-express.digest', ''),
                 'billCode' => $billCode,
                 'printSize' => $printSize,
@@ -406,7 +338,8 @@ class JTExpressService
             ];
 
         } catch (\Exception $e) {
-            Log::error('J&T Express Print Order Exception: ' . $e->getMessage(), [
+            Log::error('J&T Express Print Order Exception', [
+                'message' => $e->getMessage(),
                 'bill_code' => $billCode,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -419,142 +352,47 @@ class JTExpressService
         }
     }
 
-    /** ---------------------- Helpers ---------------------- */
+    // ---------------------- Protected Helper Methods ----------------------
 
-    protected function formatReceiverData($shippingAddress): array
+    /**
+     * Calculate signature for bizContent digest
+     * sign($CUSTOMER_CODE, $customerPwd, $PRIVATE_KEY)
+     */
+    protected function calculateBizContentDigest(string $customerCode, string $customerPwd, string $privateKey): string
     {
-        if (empty($shippingAddress)) {
-            return [
-                'name' => 'Test Receiver',
-                'mobile' => '01000000000',
-                'phone' => '01000000000',
-                'countryCode' => 'EGY',
-                'prov' => 'القاهرة',
-                'city' => 'مدينة نصر',
-                'area' => 'test area',
-                'street' => 'test street',
-                'building' => '',
-                'floor' => '',
-                'flats' => '',
-                'company' => '',
-                'mailBox' => '',
-                'postCode' => '',
-                'latitude' => '',
-                'longitude' => ''
-            ];
-        }
+        $str = $customerCode . $customerPwd . $privateKey;
+        return base64_encode(md5($str, true));
+    }
 
-        if (is_object($shippingAddress)) {
-            return [
-                'name' => trim(($shippingAddress->first_name ?? '') . ' ' . ($shippingAddress->last_name ?? '')),
-                'mobile' => $shippingAddress->phone ?? '01000000000',
-                'phone' => $shippingAddress->phone ?? '01000000000',
-                'countryCode' => 'EGY',
-                'prov' => $shippingAddress->state->name ?? $shippingAddress->city->name ?? 'القاهرة',
-                'city' => $shippingAddress->city->name ?? 'مدينة نصر',
-                'area' => $shippingAddress->area ?? $shippingAddress->state->name ?? '',
-                'street' => $shippingAddress->street ?? $shippingAddress->address_line1 ?? '',
-                'building' => $shippingAddress->building ?? '',
-                'floor' => $shippingAddress->floor ?? '',
-                'flats' => $shippingAddress->flats ?? '',
-                'company' => $shippingAddress->company ?? '',
-                'mailBox' => $shippingAddress->user->email ?? '',
-                'postCode' => $shippingAddress->post_code ?? '',
-                'latitude' => $shippingAddress->latitude ?? '',
-                'longitude' => $shippingAddress->longitude ?? ''
-            ];
-        }
+    /**
+     * Parameter encryption for request header digest
+     * encrypt($params, $key)
+     */
+    protected function calculateHeaderDigest(string $bizContent, string $privateKey): string
+    {
+        $str = $bizContent . $privateKey;
+        return base64_encode(md5($str, true));
+    }
 
+    /**
+     * Generate request headers
+     */
+    protected function getHeaders(string $digest, string $timestamp): array
+    {
         return [
-            'name' => trim(($shippingAddress['first_name'] ?? '') . ' ' . ($shippingAddress['last_name'] ?? '')),
-            'mobile' => $shippingAddress['phone'] ?? '01000000000',
-            'phone' => $shippingAddress['phone'] ?? '01000000000',
-            'countryCode' => 'EGY',
-            'prov' => $shippingAddress['state']['name'] ?? $shippingAddress['city']['name'] ?? 'القاهرة',
-            'city' => $shippingAddress['city']['name'] ?? 'مدينة نصر',
-            'area' => $shippingAddress['area'] ?? $shippingAddress['state']['name'] ?? '',
-            'street' => $shippingAddress['street'] ?? $shippingAddress['address_line1'] ?? '',
-            'building' => $shippingAddress['building'] ?? '',
-            'floor' => $shippingAddress['floor'] ?? '',
-            'flats' => $shippingAddress['flats'] ?? '',
-            'company' => $shippingAddress['company'] ?? '',
-            'mailBox' => $shippingAddress['user']['email'] ?? '',
-            'postCode' => $shippingAddress['post_code'] ?? '',
-            'latitude' => $shippingAddress['latitude'] ?? '',
-            'longitude' => $shippingAddress['longitude'] ?? ''
+            'Accept' => 'application/json',
+            'Content-Type' => 'application/x-www-form-urlencoded',
+            'apiAccount' => $this->apiAccount,
+            'digest' => $digest,
+            'timestamp' => $timestamp,
         ];
     }
 
-    protected function formatSenderData(): array
+    /**
+     * Generate timestamp for API requests
+     */
+    protected function generateTimestamp(): string
     {
-        return [
-            'name' => config('jt-express.sender.name', 'Test Sender'),
-            'mobile' => config('jt-express.sender.mobile', '01000000000'),
-            'phone' => config('jt-express.sender.phone', '01000000000'),
-            'countryCode' => 'EGY',
-            'prov' => config('jt-express.sender.prov', 'الجيزة'),
-            'city' => config('jt-express.sender.city', 'مدينة السادس من أكتوبر'),
-            'area' => config('jt-express.sender.area', 'test area'),
-            'street' => config('jt-express.sender.street', '456'),
-            'building' => config('jt-express.sender.building', '1'),
-            'floor' => config('jt-express.sender.floor', '22'),
-            'flats' => config('jt-express.sender.flats', '33'),
-            'company' => config('jt-express.sender.company', 'testCompany'),
-            'mailBox' => config('jt-express.sender.mailBox', ''),
-            'postCode' => config('jt-express.sender.postCode', ''),
-            'latitude' => config('jt-express.sender.latitude', ''),
-            'longitude' => config('jt-express.sender.longitude', '')
-        ];
-    }
-
-    protected function formatItems(iterable $items): array
-    {
-        $formattedItems = [];
-
-        foreach ($items as $item) {
-            if (is_object($item)) {
-                $formattedItems[] = [
-                    'itemName' => $item->product->name ?? 'Product',
-                    'englishName' => method_exists($item->product, 'getTranslation')
-                        ? ($item->product->getTranslation('name', 'en') ?? '')
-                        : '',
-                    'chineseName' => '',
-                    'number' => (int)($item->quantity ?? 1),
-                    'itemType' => 'ITN1',
-                    'priceCurrency' => 'EGP',
-                    'itemValue' => (string)($item->price_at_purchase ?? '0'),
-                    'itemUrl' => '',
-                    'desc' => $item->product->description ?? 'Order Item'
-                ];
-            } else {
-                $formattedItems[] = [
-                    'itemName' => $item['product']['name'] ?? 'Product',
-                    'englishName' => '',
-                    'chineseName' => '',
-                    'number' => (int)($item['quantity'] ?? 1),
-                    'itemType' => 'ITN1',
-                    'priceCurrency' => 'EGP',
-                    'itemValue' => (string)($item['price_at_purchase'] ?? '0'),
-                    'itemUrl' => '',
-                    'desc' => $item['product']['description'] ?? 'Order Item'
-                ];
-            }
-        }
-
-        if (empty($formattedItems)) {
-            $formattedItems[] = [
-                'itemName' => 'Product',
-                'englishName' => '',
-                'chineseName' => '',
-                'number' => 1,
-                'itemType' => 'ITN1',
-                'priceCurrency' => 'EGP',
-                'itemValue' => '0',
-                'itemUrl' => '',
-                'desc' => 'Order Item'
-            ];
-        }
-
-        return $formattedItems;
+        return strval(round(microtime(true) * 1000));
     }
 }
