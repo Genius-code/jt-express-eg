@@ -40,7 +40,11 @@ class JTExpressFacadeTest extends TestCase
             ], 200)
         ]);
 
-        $result = JTExpress::createOrder(['id' => 'ORDER0000000001']);
+        $result = JTExpress::createOrder([
+            'id' => 'ORDER0000000001',
+            'shippingAddress' => ['first_name' => 'John', 'phone' => '01234567890'],
+            'orderItems' => [['product' => ['name' => 'Test'], 'quantity' => 1]]
+        ]);
 
         $this->assertTrue($result['success']);
         $this->assertEquals('JTE123456789', $result['waybill_code']);

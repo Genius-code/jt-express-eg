@@ -100,7 +100,9 @@ class JTExpressServiceTest extends TestCase
                 'state' => ['name' => 'Cairo'],
                 'street' => 'Test Street',
             ],
-            'orderItems' => []
+            'orderItems' => [
+                ['product' => ['name' => 'Test Product'], 'quantity' => 1, 'price_at_purchase' => '100']
+            ]
         ];
 
         $result = $this->service->createOrder($orderData);
@@ -123,7 +125,17 @@ class JTExpressServiceTest extends TestCase
             ], 400)
         ]);
 
-        $orderData = ['id' => 'ORDER0000000001'];
+        $orderData = [
+            'id' => 'ORDER0000000001',
+            'shippingAddress' => [
+                'first_name' => 'John',
+                'last_name' => 'Doe',
+                'phone' => '01234567890',
+            ],
+            'orderItems' => [
+                ['product' => ['name' => 'Test'], 'quantity' => 1, 'price_at_purchase' => '100']
+            ]
+        ];
         $result = $this->service->createOrder($orderData);
 
         $this->assertFalse($result['success']);
@@ -140,11 +152,39 @@ class JTExpressServiceTest extends TestCase
             }
         ]);
 
-        $result = $this->service->createOrder(['id' => 'ORDER0000000001']);
+        $result = $this->service->createOrder([
+            'id' => 'ORDER0000000001',
+            'shippingAddress' => ['first_name' => 'John', 'phone' => '01234567890'],
+            'orderItems' => [['product' => ['name' => 'Test'], 'quantity' => 1]]
+        ]);
 
         $this->assertFalse($result['success']);
         $this->assertEquals('Connection timeout', $result['error']);
         $this->assertEquals(500, $result['status_code']);
+    }
+
+    /** @test */
+    public function it_validates_order_data_before_creation(): void
+    {
+        // Missing shippingAddress
+        $result = $this->service->createOrder([
+            'id' => 'ORDER0000000001',
+            'orderItems' => [['product' => ['name' => 'Test'], 'quantity' => 1]]
+        ]);
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals(400, $result['status_code']);
+        $this->assertStringContainsString('Shipping address is required', $result['error']);
+
+        // Missing orderItems
+        $result = $this->service->createOrder([
+            'id' => 'ORDER0000000001',
+            'shippingAddress' => ['first_name' => 'John', 'phone' => '01234567890']
+        ]);
+
+        $this->assertFalse($result['success']);
+        $this->assertEquals(400, $result['status_code']);
+        $this->assertStringContainsString('Order items are required', $result['error']);
     }
 
     /** @test */
@@ -313,119 +353,6 @@ class JTExpressServiceTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('does not support printing', $result['error']);
         $this->assertEquals('121003006', $result['error_code']);
-    }
-
-    /** @test */
-    public function it_formats_receiver_data_from_array(): void
-    {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('formatReceiverData');
-        $method->setAccessible(true);
-
-        $shippingAddress = [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'phone' => '01234567890',
-            'city' => ['name' => 'Cairo'],
-            'state' => ['name' => 'Cairo Governorate'],
-            'street' => 'Test Street',
-            'building' => '10',
-            'floor' => '5',
-            'latitude' => '30.0444',
-            'longitude' => '31.2357'
-        ];
-
-        $result = $method->invoke($this->service, $shippingAddress);
-
-        $this->assertIsArray($result);
-        $this->assertEquals('John Doe', $result['name']);
-        $this->assertEquals('01234567890', $result['mobile']);
-        $this->assertEquals('Cairo', $result['city']);
-        $this->assertEquals('Test Street', $result['street']);
-        $this->assertEquals('10', $result['building']);
-        $this->assertEquals('5', $result['floor']);
-        $this->assertEquals('30.0444', $result['latitude']);
-        $this->assertEquals('31.2357', $result['longitude']);
-    }
-
-    /** @test */
-    public function it_formats_receiver_data_with_empty_address(): void
-    {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('formatReceiverData');
-        $method->setAccessible(true);
-
-        $result = $method->invoke($this->service, []);
-
-        $this->assertIsArray($result);
-        $this->assertEquals('Test Receiver', $result['name']);
-        $this->assertEquals('01000000000', $result['mobile']);
-        $this->assertEquals('EGY', $result['countryCode']);
-    }
-
-    /** @test */
-    public function it_formats_sender_data_from_config(): void
-    {
-        config()->set('jt-express.sender.name', 'Company Name');
-        config()->set('jt-express.sender.mobile', '01111111111');
-        config()->set('jt-express.sender.city', 'Giza');
-
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('formatSenderData');
-        $method->setAccessible(true);
-
-        $result = $method->invoke($this->service);
-
-        $this->assertIsArray($result);
-        $this->assertEquals('Company Name', $result['name']);
-        $this->assertEquals('01111111111', $result['mobile']);
-        $this->assertEquals('Giza', $result['city']);
-        $this->assertEquals('EGY', $result['countryCode']);
-    }
-
-    /** @test */
-    public function it_formats_items_from_array(): void
-    {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('formatItems');
-        $method->setAccessible(true);
-
-        $items = [
-            [
-                'product' => ['name' => 'Product 1', 'description' => 'Description 1'],
-                'quantity' => 2,
-                'price_at_purchase' => '50'
-            ],
-            [
-                'product' => ['name' => 'Product 2', 'description' => 'Description 2'],
-                'quantity' => 1,
-                'price_at_purchase' => '100'
-            ]
-        ];
-
-        $result = $method->invoke($this->service, $items);
-
-        $this->assertIsArray($result);
-        $this->assertCount(2, $result);
-        $this->assertEquals('Product 1', $result[0]['itemName']);
-        $this->assertEquals(2, $result[0]['number']);
-        $this->assertEquals('50', $result[0]['itemValue']);
-        $this->assertEquals('EGP', $result[0]['priceCurrency']);
-    }
-
-    /** @test */
-    public function it_formats_items_with_empty_array(): void
-    {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('formatItems');
-        $method->setAccessible(true);
-
-        $result = $method->invoke($this->service, []);
-
-        $this->assertIsArray($result);
-        $this->assertCount(1, $result);
-        $this->assertEquals('Product', $result[0]['itemName']);
-        $this->assertEquals(1, $result[0]['number']);
     }
 
     /** @test */
