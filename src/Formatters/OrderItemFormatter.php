@@ -1,8 +1,8 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Formatters;
+namespace GeniusCode\JTExpressEg\Formatters;
 
-use Appleera1\JtExpressEg\DTOs\OrderItemData;
+use GeniusCode\JTExpressEg\DTOs\OrderItemData;
 
 class OrderItemFormatter
 {

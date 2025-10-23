@@ -108,7 +108,7 @@ The SDK automatically switches between environments:
 ### Using the Facade (Recommended)
 
 ```php
-use Appleera1\JtExpressEg\Facades\JTExpress;
+use GeniusCode\JTExpressEg\Facades\JTExpress;
 
 $result = JTExpress::createOrder([
     'shippingAddress' => [
@@ -135,7 +135,7 @@ if ($result['success']) {
 ### Using Dependency Injection
 
 ```php
-use Appleera1\JtExpressEg\JTExpressService;
+use GeniusCode\JTExpressEg\JTExpressService;
 
 class ShippingController extends Controller
 {
@@ -155,7 +155,7 @@ class ShippingController extends Controller
 ### Creating an Order
 
 ```php
-use Appleera1\JtExpressEg\Facades\JTExpress;
+use GeniusCode\JTExpressEg\Facades\JTExpress;
 
 $orderData = [
     'id' => 'ORDER-12345', // Your internal order ID (optional)
@@ -339,8 +339,8 @@ $result = JTExpress::createOrder([
 For advanced use cases, you can use formatters and validators directly:
 
 ```php
-use Appleera1\JtExpressEg\Formatters\AddressFormatter;
-use Appleera1\JtExpressEg\Validators\OrderDataValidator;
+use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
+use GeniusCode\JTExpressEg\Validators\OrderDataValidator;
 
 // Format address
 $formatter = new AddressFormatter();
@@ -360,8 +360,8 @@ try {
 The package provides specific exception types:
 
 ```php
-use Appleera1\JtExpressEg\Exceptions\InvalidOrderDataException;
-use Appleera1\JtExpressEg\Exceptions\ApiException;
+use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
+use GeniusCode\JTExpressEg\Exceptions\ApiException;
 
 try {
     $result = JTExpress::createOrder($orderData);

@@ -1,8 +1,8 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Tests;
+namespace GeniusCode\JTExpressEg\Tests;
 
-use Appleera1\JtExpressEg\JTExpressServiceProvider;
+use GeniusCode\JTExpressEg\JTExpressServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 abstract class TestCase extends Orchestra

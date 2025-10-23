@@ -1,8 +1,8 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Facades;
+namespace GeniusCode\JTExpressEg\Facades;
 
-use Appleera1\JtExpressEg\JTExpressService;
+use GeniusCode\JTExpressEg\JTExpressService;
 use Illuminate\Support\Facades\Facade;
 
 class JTExpress extends Facade

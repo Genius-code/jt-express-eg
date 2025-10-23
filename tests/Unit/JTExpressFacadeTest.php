@@ -1,10 +1,10 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Tests\Unit;
+namespace GeniusCode\JTExpressEg\Tests\Unit;
 
-use Appleera1\JtExpressEg\Facades\JTExpress;
-use Appleera1\JtExpressEg\JTExpressService;
-use Appleera1\JtExpressEg\Tests\TestCase;
+use GeniusCode\JTExpressEg\Facades\JTExpress;
+use GeniusCode\JTExpressEg\JTExpressService;
+use GeniusCode\JTExpressEg\Tests\TestCase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 

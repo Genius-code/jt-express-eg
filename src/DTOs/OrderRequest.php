@@ -1,6 +1,6 @@
 <?php
 
-namespace Appleera1\JtExpressEg\DTOs;
+namespace GeniusCode\JTExpressEg\DTOs;
 
 class OrderRequest
 {

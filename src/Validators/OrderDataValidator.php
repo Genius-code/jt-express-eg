@@ -1,8 +1,8 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Validators;
+namespace GeniusCode\JTExpressEg\Validators;
 
-use Appleera1\JtExpressEg\Exceptions\InvalidOrderDataException;
+use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
 
 class OrderDataValidator
 {

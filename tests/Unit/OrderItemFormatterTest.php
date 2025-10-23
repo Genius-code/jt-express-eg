@@ -1,10 +1,10 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Tests\Unit;
+namespace GeniusCode\JTExpressEg\Tests\Unit;
 
-use Appleera1\JtExpressEg\DTOs\OrderItemData;
-use Appleera1\JtExpressEg\Formatters\OrderItemFormatter;
-use Appleera1\JtExpressEg\Tests\TestCase;
+use GeniusCode\JTExpressEg\DTOs\OrderItemData;
+use GeniusCode\JTExpressEg\Formatters\OrderItemFormatter;
+use GeniusCode\JTExpressEg\Tests\TestCase;
 
 class OrderItemFormatterTest extends TestCase
 {

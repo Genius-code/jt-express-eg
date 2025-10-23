@@ -1,6 +1,6 @@
 <?php
 
-namespace Appleera1\JtExpressEg;
+namespace GeniusCode\JtExpressEg;
 
 use Illuminate\Support\ServiceProvider;
 

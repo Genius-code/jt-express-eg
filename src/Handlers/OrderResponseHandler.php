@@ -1,8 +1,8 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Handlers;
+namespace GeniusCode\JTExpressEg\Handlers;
 
-use Appleera1\JtExpressEg\Exceptions\ApiException;
+use GeniusCode\JTExpressEg\Exceptions\ApiException;
 use Illuminate\Http\Client\Response;
 
 class OrderResponseHandler

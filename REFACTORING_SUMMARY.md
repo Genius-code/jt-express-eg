@@ -211,7 +211,7 @@ JTExpress::createOrder($orderData);
 You can now use individual components:
 
 ```php
-use Appleera1\JtExpressEg\Formatters\AddressFormatter;
+use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
 
 $formatter = new AddressFormatter();
 $address = $formatter->formatReceiver($shippingData);

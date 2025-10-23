@@ -1,10 +1,10 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Tests\Unit;
+namespace GeniusCode\JTExpressEg\Tests\Unit;
 
-use Appleera1\JtExpressEg\Exceptions\InvalidOrderDataException;
-use Appleera1\JtExpressEg\Validators\OrderDataValidator;
-use Appleera1\JtExpressEg\Tests\TestCase;
+use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
+use GeniusCode\JTExpressEg\Validators\OrderDataValidator;
+use GeniusCode\JTExpressEg\Tests\TestCase;
 
 class OrderDataValidatorTest extends TestCase
 {

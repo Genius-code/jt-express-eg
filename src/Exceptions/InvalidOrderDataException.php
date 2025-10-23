@@ -1,6 +1,6 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Exceptions;
+namespace GeniusCode\JTExpressEg\Exceptions;
 
 class InvalidOrderDataException extends JTExpressException
 {

@@ -9,7 +9,7 @@ If you're using the facade or service class directly, **no changes are required*
 
 ```php
 // This still works exactly the same way
-use Appleera1\JtExpressEg\Facades\JTExpress;
+use GeniusCode\JTExpressEg\Facades\JTExpress;
 
 $result = JTExpress::createOrder([
     'shippingAddress' => $address,
@@ -28,7 +28,7 @@ The refactored version validates data **before** making API calls:
 // Will throw InvalidOrderDataException if validation fails
 try {
     $result = JTExpress::createOrder($orderData);
-} catch (\Appleera1\JtExpressEg\Exceptions\InvalidOrderDataException $e) {
+} catch (\GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException $e) {
     // Handle validation error
     // e.g., missing shippingAddress or orderItems
 }
@@ -39,8 +39,8 @@ try {
 You can now catch specific exception types:
 
 ```php
-use Appleera1\JtExpressEg\Exceptions\InvalidOrderDataException;
-use Appleera1\JtExpressEg\Exceptions\ApiException;
+use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
+use GeniusCode\JTExpressEg\Exceptions\ApiException;
 
 try {
     $result = JTExpress::createOrder($orderData);
@@ -64,8 +64,9 @@ try {
 If you need fine-grained control, you can use components directly:
 
 #### Address Formatting
+
 ```php
-use Appleera1\JtExpressEg\Formatters\AddressFormatter;
+use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
 
 $formatter = new AddressFormatter();
 $receiverAddress = $formatter->formatReceiver($shippingAddress);
@@ -73,16 +74,18 @@ $senderAddress = $formatter->formatSender();
 ```
 
 #### Order Item Formatting
+
 ```php
-use Appleera1\JtExpressEg\Formatters\OrderItemFormatter;
+use GeniusCode\JTExpressEg\Formatters\OrderItemFormatter;
 
 $itemFormatter = new OrderItemFormatter();
 $formattedItems = $itemFormatter->format($orderItems);
 ```
 
 #### Validation
+
 ```php
-use Appleera1\JtExpressEg\Validators\OrderDataValidator;
+use GeniusCode\JTExpressEg\Validators\OrderDataValidator;
 
 $validator = new OrderDataValidator();
 try {
@@ -115,7 +118,7 @@ This means:
 Magic values have been extracted to constants. If you need to reference defaults:
 
 ```php
-use Appleera1\JtExpressEg\Builders\OrderRequestBuilder;
+use GeniusCode\JTExpressEg\Builders\OrderRequestBuilder;
 
 // Access constants if needed
 OrderRequestBuilder::DEFAULT_DELIVERY_TYPE; // '04'

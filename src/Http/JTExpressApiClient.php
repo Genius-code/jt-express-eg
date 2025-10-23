@@ -1,6 +1,6 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Http;
+namespace GeniusCode\JTExpressEg\Http;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;

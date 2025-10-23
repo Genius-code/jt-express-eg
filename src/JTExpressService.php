@@ -1,14 +1,14 @@
 <?php
 
-namespace Appleera1\JtExpressEg;
+namespace GeniusCode\JTExpressEg;
 
-use Appleera1\JtExpressEg\Builders\OrderRequestBuilder;
-use Appleera1\JtExpressEg\Exceptions\InvalidOrderDataException;
-use Appleera1\JtExpressEg\Formatters\AddressFormatter;
-use Appleera1\JtExpressEg\Formatters\OrderItemFormatter;
-use Appleera1\JtExpressEg\Handlers\OrderResponseHandler;
-use Appleera1\JtExpressEg\Http\JTExpressApiClient;
-use Appleera1\JtExpressEg\Validators\OrderDataValidator;
+use GeniusCode\JTExpressEg\Builders\OrderRequestBuilder;
+use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
+use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
+use GeniusCode\JTExpressEg\Formatters\OrderItemFormatter;
+use GeniusCode\JTExpressEg\Handlers\OrderResponseHandler;
+use GeniusCode\JTExpressEg\Http\JTExpressApiClient;
+use GeniusCode\JTExpressEg\Validators\OrderDataValidator;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 

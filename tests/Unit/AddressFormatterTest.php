@@ -1,10 +1,10 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Tests\Unit;
+namespace GeniusCode\JTExpressEg\Tests\Unit;
 
-use Appleera1\JtExpressEg\DTOs\AddressData;
-use Appleera1\JtExpressEg\Formatters\AddressFormatter;
-use Appleera1\JtExpressEg\Tests\TestCase;
+use GeniusCode\JTExpressEg\DTOs\AddressData;
+use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
+use GeniusCode\JTExpressEg\Tests\TestCase;
 
 class AddressFormatterTest extends TestCase
 {

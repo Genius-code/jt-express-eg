@@ -1,10 +1,10 @@
 <?php
 
-namespace Appleera1\JtExpressEg\Builders;
+namespace GeniusCode\JTExpressEg\Builders;
 
-use Appleera1\JtExpressEg\DTOs\AddressData;
-use Appleera1\JtExpressEg\DTOs\OrderItemData;
-use Appleera1\JtExpressEg\DTOs\OrderRequest;
+use GeniusCode\JTExpressEg\DTOs\AddressData;
+use GeniusCode\JTExpressEg\DTOs\OrderItemData;
+use GeniusCode\JTExpressEg\DTOs\OrderRequest;
 use Carbon\Carbon;
 
 class OrderRequestBuilder
