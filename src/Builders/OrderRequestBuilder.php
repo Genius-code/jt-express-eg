@@ -3,7 +3,6 @@
 namespace GeniusCode\JTExpressEg\Builders;
 
 use GeniusCode\JTExpressEg\DTOs\AddressData;
-use GeniusCode\JTExpressEg\DTOs\OrderItemData;
 use GeniusCode\JTExpressEg\DTOs\OrderRequest;
 use Carbon\Carbon;
 
