@@ -57,7 +57,7 @@ A **modern, type-safe, and production-ready** Laravel package for seamless integ
 Install via Composer:
 
 ```bash
-composer require genius-code/jt-express-eg
+composer require genius-code/jt-express-eg:^1.0
 ```
 
 ### Publish Configuration (Optional)
