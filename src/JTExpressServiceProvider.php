@@ -1,6 +1,6 @@
 <?php
 
-namespace GeniusCode\JtExpressEg;
+namespace GeniusCode\JTExpressEg;
 
 use Illuminate\Support\ServiceProvider;
 

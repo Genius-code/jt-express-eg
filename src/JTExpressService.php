@@ -28,10 +28,10 @@ class JTExpressService
 
     public function __construct()
     {
-        $this->apiAccount = config('jt-express.apiAccount', '292508153084379141');
-        $this->privateKey = config('jt-express.privateKey', 'a0a1047cce70493c9d5d29704f05d0d9');
-        $this->customerCode = config('jt-express.customerCode', 'J0086000020');
-        $this->customerPwd = config('jt-express.customerPwd', '4AF43B0704D20349725BF0BBB64051BB');
+        $this->apiAccount = (string) (config('jt-express.apiAccount') ?? '292508153084379141');
+        $this->privateKey = (string) (config('jt-express.privateKey') ?? 'a0a1047cce70493c9d5d29704f05d0d9');
+        $this->customerCode = (string) (config('jt-express.customerCode') ?? 'J0086000020');
+        $this->customerPwd = (string) (config('jt-express.customerPwd') ?? '4AF43B0704D20349725BF0BBB64051BB');
 
         $this->baseUrl = config('app.env') === 'production'
             ? 'https://openapi.jtjms-eg.com'
