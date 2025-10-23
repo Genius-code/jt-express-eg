@@ -17,29 +17,30 @@
   },
   "autoload": {
     "psr-4": {
-      "Appleera1\\JtExpressEg\\": "src/"
+      "GeniusCode\\JTExpressEg\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Appleera1\\JtExpressEg\\Tests\\": "tests/"
+      "GeniusCode\\JTExpressEg\\Tests\\": "tests/"
     }
   },
   "extra": {
     "laravel": {
       "providers": [
-        "Appleera1\\JtExpressEg\\JTExpressServiceProvider"
+        "GeniusCode\\JTExpressEg\\JTExpressServiceProvider"
       ],
       "aliases": {
-        "JTExpress": "Appleera1\\JtExpressEg\\Facades\\JTExpress"
+        "JTExpress": "GeniusCode\\JTExpressEg\\Facades\\JTExpress"
       }
     }
   },
   "authors": [
     {
-      "name": "Genuis-code",
+      "name": "Genius-code",
       "email": "moh.aly8890@gmail.com"
     }
   ],
-  "minimum-stability": "stable"
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }
