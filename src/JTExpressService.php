@@ -3,196 +3,134 @@
 namespace GeniusCode\JTExpressEg;
 
 use GeniusCode\JTExpressEg\Builders\OrderRequestBuilder;
+use GeniusCode\JTExpressEg\Exceptions\ApiException;
 use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
 use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
 use GeniusCode\JTExpressEg\Formatters\OrderItemFormatter;
 use GeniusCode\JTExpressEg\Handlers\OrderResponseHandler;
 use GeniusCode\JTExpressEg\Http\JTExpressApiClient;
 use GeniusCode\JTExpressEg\Validators\OrderDataValidator;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Log;
 
 class JTExpressService
 {
-    protected string $apiAccount;
-    protected string $privateKey;
-    protected string $customerCode;
-    protected string $customerPwd;
-    protected string $baseUrl;
-
-    private JTExpressApiClient $apiClient;
-    private OrderResponseHandler $responseHandler;
-    private AddressFormatter $addressFormatter;
-    private OrderItemFormatter $itemFormatter;
-    private OrderDataValidator $validator;
-
-    public function __construct()
-    {
-        $this->apiAccount = (string) (config('jt-express.apiAccount') ?? '292508153084379141');
-        $this->privateKey = (string) (config('jt-express.privateKey') ?? 'a0a1047cce70493c9d5d29704f05d0d9');
-        $this->customerCode = (string) (config('jt-express.customerCode') ?? 'J0086000020');
-        $this->customerPwd = (string) (config('jt-express.customerPwd') ?? '4AF43B0704D20349725BF0BBB64051BB');
-
-        $this->baseUrl = config('app.env') === 'production'
-            ? 'https://openapi.jtjms-eg.com'
-            : 'https://demoopenapi.jtjms-eg.com';
-
-        // Initialize dependencies
-        $this->apiClient = new JTExpressApiClient($this->baseUrl);
-        $this->responseHandler = new OrderResponseHandler();
-        $this->addressFormatter = new AddressFormatter();
-        $this->itemFormatter = new OrderItemFormatter();
-        $this->validator = new OrderDataValidator();
+    public function __construct(
+        private readonly JTExpressApiClient $apiClient,
+        private readonly OrderResponseHandler $responseHandler,
+        private readonly AddressFormatter $addressFormatter,
+        private readonly OrderItemFormatter $itemFormatter,
+        private readonly OrderDataValidator $validator,
+        private readonly OrderRequestBuilder $orderRequestBuilder,
+        protected readonly string $apiAccount,
+        protected readonly string $privateKey,
+        protected readonly string $customerCode,
+        protected readonly string $customerPwd,
+    ) {
     }
 
     /**
-     * Create a new order
+     * Create a new order.
      *
-     * @param array $orderData Order data including shippingAddress and orderItems
-     * @return array Response data
+     * @param array $orderData
+     * @return array
+     * @throws ApiException
      */
     public function createOrder(array $orderData): array
     {
-        try {
-            // Validate order data
-            $this->validator->validate($orderData);
+        $this->validator->validate($orderData);
 
-            // Generate timestamp
-            $timestamp = $this->generateTimestamp();
+        $bizContentDigest = $this->calculateBizContentDigest(
+            $this->customerCode,
+            $this->customerPwd,
+            $this->privateKey
+        );
 
-            // Calculate digests
-            $bizContentDigest = $this->calculateBizContentDigest(
-                $this->customerCode,
-                $this->customerPwd,
-                $this->privateKey
-            );
+        $receiver = $this->addressFormatter->formatReceiver($orderData['shippingAddress'] ?? []);
+        $sender = $this->addressFormatter->formatSender();
+        $items = $this->itemFormatter->format($orderData['orderItems'] ?? []);
 
-            // Format address and items
-            $receiver = $this->addressFormatter->formatReceiver($orderData['shippingAddress'] ?? []);
-            $sender = $this->addressFormatter->formatSender();
-            $items = $this->itemFormatter->format($orderData['orderItems'] ?? []);
+        $orderRequest = $this->orderRequestBuilder->build(
+            $this->customerCode,
+            $bizContentDigest,
+            $orderData,
+            $receiver,
+            $sender,
+            $items
+        );
 
-            // Build order request
-            $builder = new OrderRequestBuilder($this->customerCode, $bizContentDigest);
-            $orderRequest = $builder->build($orderData, $receiver, $sender, $items);
-
-            // Prepare request
-            $bizContentJson = json_encode($orderRequest->toArray(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $headerDigest = $this->calculateHeaderDigest($bizContentJson, $this->privateKey);
-            $headers = $this->getHeaders($headerDigest, $timestamp);
-
-            // Send request
-            $response = $this->apiClient->createOrder($bizContentJson, $headers);
-
-            // Handle response
-            return $this->responseHandler->handle($response);
-
-        } catch (InvalidOrderDataException $e) {
-            Log::error('J&T Express Create Order Validation Failed', [
-                'message' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'status_code' => 400
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('J&T Express Create Order Exception', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'status_code' => 500
-            ];
-        }
+        return $this->sendRequest('createOrder', $orderRequest->toArray());
     }
 
     /**
-     * Cancel an order
+     * Update an existing order.
      *
-     * @param string $txlogisticId Transaction logistic ID
-     * @param string $reason Cancellation reason
-     * @return array Response data
+     * @param array $orderData
+     * @return array
+     * @throws ApiException|InvalidOrderDataException
+     */
+    public function updateOrder(array $orderData): array
+    {
+        $orderData['operateType'] = 2; // Set operateType to 2 for updating order
+
+        $this->validator->validate($orderData);
+
+        $bizContentDigest = $this->calculateBizContentDigest(
+            $this->customerCode,
+            $this->customerPwd,
+            $this->privateKey
+        );
+
+        $receiver = $this->addressFormatter->formatReceiver($orderData['shippingAddress'] ?? []);
+        $sender = $this->addressFormatter->formatSender();
+        $items = $this->itemFormatter->format($orderData['orderItems'] ?? []);
+
+        $orderRequest = $this->orderRequestBuilder->build(
+            $this->customerCode,
+            $bizContentDigest,
+            $orderData,
+            $receiver,
+            $sender,
+            $items
+        );
+
+        return $this->sendRequest('createOrder', $orderRequest->toArray());
+    }
+
+    /**
+     * Cancel an order.
+     *
+     * @param string $txlogisticId
+     * @param string $reason
+     * @return array
+     * @throws ApiException
      */
     public function cancelOrder(string $txlogisticId, string $reason = 'Customer request'): array
     {
-        try {
-            $timestamp = $this->generateTimestamp();
+        $bizContentArray = [
+            'txlogisticId' => $txlogisticId,
+            'orderType' => 1,
+            'reason' => $reason,
+            'customerCode' => $this->customerCode,
+            'digest' => $this->calculateBizContentDigest($this->customerCode, $this->customerPwd, $this->privateKey),
+        ];
 
-            $bizContentDigest = $this->calculateBizContentDigest(
-                $this->customerCode,
-                $this->customerPwd,
-                $this->privateKey
-            );
-
-            $bizContentArray = [
-                'txlogisticId' => $txlogisticId,
-                'orderType' => 1,
-                'reason' => $reason,
-                'customerCode' => $this->customerCode,
-                'digest' => $bizContentDigest
-            ];
-
-            $bizContentJson = json_encode($bizContentArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $headerDigest = $this->calculateHeaderDigest($bizContentJson, $this->privateKey);
-            $headers = $this->getHeaders($headerDigest, $timestamp);
-
-            $response = Http::withHeaders($headers)
-                ->asForm()
-                ->timeout(30)
-                ->post($this->baseUrl . '/webopenplatformapi/api/order/cancelOrder', [
-                    'bizContent' => $bizContentJson
-                ]);
-
-            return $this->responseHandler->handle($response);
-
-        } catch (\Exception $e) {
-            Log::error('J&T Express Cancel Order Exception', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'status_code' => 500
-            ];
-        }
+        return $this->sendRequest('cancelOrder', $bizContentArray);
     }
 
     /**
-     * Track an order by waybill code
+     * Track an order by waybill code.
      *
-     * @param string $billCode Waybill code
-     * @return array Tracking information
+     * @param string $billCode
+     * @return array
+     * @throws ApiException
      */
     public function trackOrder(string $billCode): array
     {
-        try {
-            $timestamp = $this->generateTimestamp();
+        $bizContentArray = ['billCodes' => $billCode];
 
-            $bizContentArray = [
-                'billCodes' => $billCode
-            ];
-
-            $bizContentJson = json_encode($bizContentArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $headerDigest = $this->calculateHeaderDigest($bizContentJson, $this->privateKey);
-            $headers = $this->getHeaders($headerDigest, $timestamp);
-
-            $response = Http::withHeaders($headers)
-                ->asForm()
-                ->timeout(30)
-                ->post($this->baseUrl . '/webopenplatformapi/api/logistics/trace', [
-                    'bizContent' => $bizContentJson
-                ]);
-
+        return $this->sendRequest('trackOrder', $bizContentArray, function (Response $response) {
             $responseData = $response->json();
-
             if ($response->successful()) {
                 return [
                     'success' => true,
@@ -200,111 +138,53 @@ class JTExpressService
                     'status_code' => $response->status()
                 ];
             }
-
-            return [
-                'success' => false,
-                'error' => $responseData['msg'] ?? 'Unknown error',
-                'data' => $responseData,
-                'status_code' => $response->status()
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('J&T Express Track Order Exception', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'status_code' => 500
-            ];
-        }
+            throw new ApiException(
+                $responseData['msg'] ?? 'Unknown error while tracking order',
+                $response->status(),
+                $responseData
+            );
+        });
     }
 
     /**
-     * Get order details by serial numbers
+     * Get order details by serial numbers.
      *
-     * @param string|array $serialNumbers Serial number(s)
-     * @return array Order details
+     * @param string|array $serialNumbers
+     * @return array
+     * @throws ApiException
      */
     public function getOrders(string|array $serialNumbers): array
     {
-        try {
-            $timestamp = $this->generateTimestamp();
+        $bizContentArray = [
+            'command' => 1,
+            'serialNumber' => is_array($serialNumbers) ? $serialNumbers : [$serialNumbers],
+            'customerCode' => $this->customerCode,
+            'digest' => $this->calculateBizContentDigest($this->customerCode, $this->customerPwd, $this->privateKey),
+        ];
 
-            $bizContentDigest = $this->calculateBizContentDigest(
-                $this->customerCode,
-                $this->customerPwd,
-                $this->privateKey
-            );
-
-            $bizContentArray = [
-                'command' => 1,
-                'serialNumber' => is_array($serialNumbers) ? $serialNumbers : [$serialNumbers],
-                'customerCode' => $this->customerCode,
-                'digest' => $bizContentDigest
-            ];
-
-            $bizContentJson = json_encode($bizContentArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $headerDigest = $this->calculateHeaderDigest($bizContentJson, $this->privateKey);
-            $headers = $this->getHeaders($headerDigest, $timestamp);
-
-            $response = Http::withHeaders($headers)
-                ->asForm()
-                ->timeout(30)
-                ->post($this->baseUrl . '/webopenplatformapi/api/order/getOrders', [
-                    'bizContent' => $bizContentJson
-                ]);
-
-            return $this->responseHandler->handle($response);
-
-        } catch (\Exception $e) {
-            Log::error('J&T Express Get Orders Exception', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'status_code' => 500
-            ];
-        }
+        return $this->sendRequest('getOrders', $bizContentArray);
     }
 
     /**
-     * Print order (waybill)
+     * Print order (waybill).
      *
-     * @param string $billCode Waybill code
-     * @param string $printSize Print size (default: '0')
-     * @param int $printCode Print code (default: 0)
-     * @return array Print data
+     * @param string $billCode
+     * @param string $printSize
+     * @param int $printCode
+     * @return array
+     * @throws ApiException
      */
     public function printOrder(string $billCode, string $printSize = '0', int $printCode = 0): array
     {
-        try {
-            $timestamp = $this->generateTimestamp();
+        $bizContentArray = [
+            'customerCode' => $this->customerCode,
+            'digest' => (string)config('jt-express.digest', ''),
+            'billCode' => $billCode,
+            'printSize' => $printSize,
+            'printCode' => $printCode,
+        ];
 
-            $bizContentArray = [
-                'customerCode' => $this->customerCode,
-                'digest' => (string)config('jt-express.digest', ''),
-                'billCode' => $billCode,
-                'printSize' => $printSize,
-                'printCode' => $printCode
-            ];
-
-            $bizContentJson = json_encode($bizContentArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $headerDigest = $this->calculateHeaderDigest($bizContentJson, $this->privateKey);
-            $headers = $this->getHeaders($headerDigest, $timestamp);
-
-            $response = Http::withHeaders($headers)
-                ->asForm()
-                ->timeout(30)
-                ->post($this->baseUrl . '/webopenplatformapi/api/order/printOrder', [
-                    'bizContent' => $bizContentJson
-                ]);
-
+        return $this->sendRequest('printOrder', $bizContentArray, function (Response $response) use ($bizContentArray) {
             $responseData = $response->json();
 
             if ($response->successful() && isset($responseData['code']) && $responseData['code'] == '1') {
@@ -320,63 +200,80 @@ class JTExpressService
             $errorCode = $responseData['code'] ?? null;
 
             if ($errorCode == '145003050') {
-                Log::warning("J&T Express Print Order - Illegal parameters: {$billCode}", [
-                    'bizContent' => $bizContentJson,
+                Log::warning("J&T Express Print Order - Illegal parameters: {$bizContentArray['billCode']}", [
+                    'bizContent' => $bizContentArray,
                     'response' => $responseData
                 ]);
             } elseif ($errorCode == '121003006') {
-                Log::warning("J&T Express Print Order - Order status not printable: {$billCode}");
+                Log::warning("J&T Express Print Order - Order status not printable: {$bizContentArray['billCode']}");
                 $errorMessage = 'Order status does not support printing. Please check if the order has been picked up or is in transit.';
             }
 
-            return [
-                'success' => false,
-                'error' => $errorMessage,
-                'error_code' => $errorCode,
-                'data' => $responseData,
-                'status_code' => $response->status()
-            ];
+            throw new ApiException($errorMessage, $response->status(), $responseData, (int) $errorCode);
+        });
+    }
+
+    /**
+     * Prepares and sends an API request, handling the common logic for authentication and response processing.
+     *
+     * @param string $apiClientMethod The method to call on the JTExpressApiClient.
+     * @param array $bizContentArray The business content for the request.
+     * @param callable|null $responseHandlerOptional Optional custom response handler.
+     * @return array The successful response data.
+     * @throws ApiException If the API returns an error.
+     */
+    private function sendRequest(string $apiClientMethod, array $bizContentArray, ?callable $responseHandlerOptional = null): array
+    {
+        try {
+            $timestamp = $this->generateTimestamp();
+            $bizContentJson = json_encode($bizContentArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $headerDigest = $this->calculateHeaderDigest($bizContentJson, $this->privateKey);
+            $headers = $this->getHeaders($headerDigest, $timestamp);
+
+            /** @var Response $response */
+            $response = $this->apiClient->{$apiClientMethod}($bizContentJson, $headers);
+
+            if ($responseHandlerOptional) {
+                return $responseHandlerOptional($response);
+            }
+
+            return $this->responseHandler->handleWithException($response);
 
         } catch (\Exception $e) {
-            Log::error('J&T Express Print Order Exception', [
+            if ($e instanceof ApiException) {
+                throw $e;
+            }
+
+            Log::error("J&T Express Service Exception in {$apiClientMethod}", [
                 'message' => $e->getMessage(),
-                'bill_code' => $billCode,
                 'trace' => $e->getTraceAsString()
             ]);
 
-            return [
-                'success' => false,
-                'error' => $e->getMessage(),
-                'status_code' => 500
-            ];
+            // Re-throw as a generic ApiException to standardize client-facing errors
+            throw new ApiException(
+                "An unexpected error occurred: " . $e->getMessage(),
+                500,
+                null,
+                $e->getCode(),
+                $e
+            );
         }
     }
 
     // ---------------------- Protected Helper Methods ----------------------
 
-    /**
-     * Calculate signature for bizContent digest
-     * sign($CUSTOMER_CODE, $customerPwd, $PRIVATE_KEY)
-     */
     protected function calculateBizContentDigest(string $customerCode, string $customerPwd, string $privateKey): string
     {
         $str = $customerCode . $customerPwd . $privateKey;
         return base64_encode(md5($str, true));
     }
 
-    /**
-     * Parameter encryption for request header digest
-     * encrypt($params, $key)
-     */
     protected function calculateHeaderDigest(string $bizContent, string $privateKey): string
     {
         $str = $bizContent . $privateKey;
         return base64_encode(md5($str, true));
     }
 
-    /**
-     * Generate request headers
-     */
     protected function getHeaders(string $digest, string $timestamp): array
     {
         return [
@@ -388,9 +285,6 @@ class JTExpressService
         ];
     }
 
-    /**
-     * Generate timestamp for API requests
-     */
     protected function generateTimestamp(): string
     {
         return strval(round(microtime(true) * 1000));

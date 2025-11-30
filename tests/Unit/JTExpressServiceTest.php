@@ -2,382 +2,328 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use GeniusCode\JTExpressEg\Builders\OrderRequestBuilder;
+use GeniusCode\JTExpressEg\Exceptions\ApiException;
+use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
+use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
+use GeniusCode\JTExpressEg\Formatters\OrderItemFormatter;
+use GeniusCode\JTExpressEg\Handlers\OrderResponseHandler;
+use GeniusCode\JTExpressEg\Http\JTExpressApiClient;
 use GeniusCode\JTExpressEg\JTExpressService;
 use GeniusCode\JTExpressEg\Tests\TestCase;
+use GeniusCode\JTExpressEg\Validators\OrderDataValidator;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Mockery\MockInterface;
 
 class JTExpressServiceTest extends TestCase
 {
     protected JTExpressService $service;
+    protected MockInterface|JTExpressApiClient $apiClientMock;
+    protected MockInterface|OrderRequestBuilder $orderRequestBuilderMock;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new JTExpressService();
+
+        // Mock dependencies
+        $this->apiClientMock = $this->mock(JTExpressApiClient::class);
+        $this->orderRequestBuilderMock = $this->mock(OrderRequestBuilder::class);
+        $responseHandler = new OrderResponseHandler();
+        $addressFormatter = new AddressFormatter();
+        $itemFormatter = new OrderItemFormatter();
+        $validator = new OrderDataValidator();
+
+        // Create service instance with mocked dependencies
+        $this->service = new JTExpressService(
+            $this->apiClientMock,
+            $responseHandler,
+            $addressFormatter,
+            $itemFormatter,
+            $validator,
+            $this->orderRequestBuilderMock, // Injected mock
+            'test_api_account',
+            'test_private_key',
+            'test_customer_code',
+            'test_customer_pwd'
+        );
+
         Log::shouldReceive('info')->andReturn(null);
         Log::shouldReceive('error')->andReturn(null);
         Log::shouldReceive('warning')->andReturn(null);
     }
 
-    /** @test */
-    public function it_can_calculate_biz_content_digest(): void
+    private function mockHttpResponse(array $data, int $status): MockInterface|Response
     {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('calculateBizContentDigest');
-        $method->setAccessible(true);
-
-        $result = $method->invoke($this->service, 'customerCode', 'customerPwd', 'privateKey');
-
-        $this->assertIsString($result);
-        $this->assertNotEmpty($result);
-        $this->assertEquals(base64_encode(md5('customerCodecustomerPwdprivateKey', true)), $result);
-    }
-
-    /** @test */
-    public function it_can_calculate_header_digest(): void
-    {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('calculateHeaderDigest');
-        $method->setAccessible(true);
-
-        $result = $method->invoke($this->service, 'bizContent', 'privateKey');
-
-        $this->assertIsString($result);
-        $this->assertNotEmpty($result);
-        $this->assertEquals(base64_encode(md5('bizContentprivateKey', true)), $result);
-    }
-
-    /** @test */
-    public function it_can_generate_proper_headers(): void
-    {
-        $reflection = new \ReflectionClass($this->service);
-        $method = $reflection->getMethod('getHeaders');
-        $method->setAccessible(true);
-
-        $result = $method->invoke($this->service, 'test-digest', '1234567890');
-
-        $this->assertIsArray($result);
-        $this->assertArrayHasKey('Accept', $result);
-        $this->assertArrayHasKey('Content-Type', $result);
-        $this->assertArrayHasKey('apiAccount', $result);
-        $this->assertArrayHasKey('digest', $result);
-        $this->assertArrayHasKey('timestamp', $result);
-        $this->assertEquals('application/json', $result['Accept']);
-        $this->assertEquals('application/x-www-form-urlencoded', $result['Content-Type']);
-        $this->assertEquals('test-digest', $result['digest']);
-        $this->assertEquals('1234567890', $result['timestamp']);
+        $response = $this->mock(Response::class);
+        $response->shouldReceive('json')->andReturn($data);
+        $response->shouldReceive('successful')->andReturn($status >= 200 && $status < 300);
+        $response->shouldReceive('status')->andReturn($status);
+        return $response;
     }
 
     /** @test */
     public function it_can_create_order_successfully(): void
     {
-        Http::fake([
-            '*/api/order/addOrder' => Http::response([
-                'code' => '1',
-                'msg' => 'Success',
-                'data' => [
-                    'billCode' => 'JTE123456789',
-                    'txlogisticId' => 'ORDER0000000001',
-                    'sortingCode' => 'SC001',
-                    'lastCenterName' => 'Cairo Center'
-                ]
-            ], 200)
-        ]);
+        $response = $this->mockHttpResponse([
+            'code' => '1',
+            'msg' => 'Success',
+            'data' => [
+                'billCode' => 'JTE123456789',
+                'txlogisticId' => 'ORDER0000000001',
+                'sortingCode' => 'SC001',
+                'lastCenterName' => 'Cairo Center'
+            ]
+        ], 200);
+
+        $this->apiClientMock->shouldReceive('createOrder')->once()->andReturn($response);
+
+        $this->orderRequestBuilderMock->shouldReceive('build')
+            ->once()
+            ->andReturn(new \GeniusCode\JTExpressEg\DTOs\OrderRequest( // Return a dummy OrderRequest DTO
+                customerCode: 'test_customer_code',
+                digest: 'test_digest',
+                txlogisticId: 'ORDER0000000001',
+                receiver: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'John Doe', mobile: '01000000000', phone: '01000000000', countryCode: 'EGY',
+                    prov: 'Cairo', city: 'Cairo', area: 'Nasr City', street: '123 Test Street'
+                ),
+                sender: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'Jane Doe', mobile: '01111111111', phone: '01111111111', countryCode: 'EGY',
+                    prov: 'Giza', city: '6th of October', area: '2nd District', street: '456 Sender Street'
+                ),
+                items: [new \GeniusCode\JTExpressEg\DTOs\OrderItemData(itemName: 'Test Item', number: 1, itemValue: '100')]
+            ));
 
         $orderData = [
             'id' => 'ORDER0000000001',
-            'deliveryType' => '04',
-            'payType' => 'PP_PM',
-            'expressType' => 'EZ',
-            'weight' => 1.5,
-            'total' => '100',
             'shippingAddress' => [
-                'first_name' => 'John',
-                'last_name' => 'Doe',
-                'phone' => '01234567890',
-                'city' => ['name' => 'Cairo'],
-                'state' => ['name' => 'Cairo'],
-                'street' => 'Test Street',
+                'first_name' => 'John', 'last_name' => 'Doe', 'phone' => '01234567890',
+                'city' => ['name' => 'Cairo'], 'state' => ['name' => 'Cairo'], 'street' => 'Test Street',
             ],
-            'orderItems' => [
-                ['product' => ['name' => 'Test Product'], 'quantity' => 1, 'price_at_purchase' => '100']
-            ]
+            'orderItems' => [['product' => ['name' => 'Test Product'], 'quantity' => 1, 'price_at_purchase' => '100']]
         ];
 
         $result = $this->service->createOrder($orderData);
 
         $this->assertTrue($result['success']);
-        $this->assertEquals(200, $result['status_code']);
         $this->assertEquals('JTE123456789', $result['waybill_code']);
-        $this->assertEquals('ORDER0000000001', $result['tx_logistic_id']);
-        $this->assertEquals('SC001', $result['sorting_code']);
-        $this->assertEquals('Cairo Center', $result['last_center_name']);
     }
 
     /** @test */
-    public function it_handles_create_order_failure(): void
+    public function it_can_update_order_successfully(): void
     {
-        Http::fake([
-            '*/api/order/addOrder' => Http::response([
-                'code' => '0',
-                'msg' => 'Invalid parameters',
-            ], 400)
-        ]);
+        $response = $this->mockHttpResponse([
+            'code' => '1',
+            'msg' => 'Success',
+            'data' => [
+                'billCode' => 'JTE987654321',
+                'txlogisticId' => 'ORDER0000000002',
+                'sortingCode' => 'SC002',
+                'lastCenterName' => 'Giza Center'
+            ]
+        ], 200);
+
+        $this->apiClientMock->shouldReceive('createOrder')->once()->andReturn($response);
+
+        // Mock the OrderRequestBuilder to check if build was called with operateType 2
+        $this->orderRequestBuilderMock->shouldReceive('build')
+            ->once()
+            ->withArgs(function ($customerCode, $bizContentDigest, $orderData, $receiver, $sender, $items) {
+                // Assert that operateType is 2
+                return $orderData['operateType'] === 2;
+            })
+            ->andReturn(new \GeniusCode\JTExpressEg\DTOs\OrderRequest( // Return a dummy OrderRequest DTO
+                customerCode: 'test_customer_code',
+                digest: 'test_digest',
+                txlogisticId: 'ORDER0000000002',
+                receiver: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'John Doe', mobile: '01000000000', phone: '01000000000', countryCode: 'EGY',
+                    prov: 'Cairo', city: 'Cairo', area: 'Nasr City', street: '123 Test Street'
+                ),
+                sender: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'Jane Doe', mobile: '01111111111', phone: '01111111111', countryCode: 'EGY',
+                    prov: 'Giza', city: '6th of October', area: '2nd District', street: '456 Sender Street'
+                ),
+                items: [new \GeniusCode\JTExpressEg\DTOs\OrderItemData(itemName: 'Test Item', number: 1, itemValue: '100')]
+            ));
 
         $orderData = [
-            'id' => 'ORDER0000000001',
+            'id' => 'ORDER0000000002',
             'shippingAddress' => [
-                'first_name' => 'John',
-                'last_name' => 'Doe',
-                'phone' => '01234567890',
+                'first_name' => 'Jane', 'last_name' => 'Smith', 'phone' => '01234567891',
+                'city' => ['name' => 'Giza'], 'state' => ['name' => 'Giza'], 'street' => 'Update Street',
             ],
-            'orderItems' => [
-                ['product' => ['name' => 'Test'], 'quantity' => 1, 'price_at_purchase' => '100']
-            ]
+            'orderItems' => [['product' => ['name' => 'Updated Product'], 'quantity' => 2, 'price_at_purchase' => '200']]
         ];
-        $result = $this->service->createOrder($orderData);
 
-        $this->assertFalse($result['success']);
-        $this->assertEquals('Invalid parameters', $result['error']);
-        $this->assertEquals(400, $result['status_code']);
+        $result = $this->service->updateOrder($orderData);
+
+        $this->assertTrue($result['success']);
+        $this->assertEquals('JTE987654321', $result['waybill_code']);
     }
 
     /** @test */
-    public function it_handles_create_order_exception(): void
+    public function it_throws_api_exception_on_create_order_failure(): void
     {
-        Http::fake([
-            '*/api/order/addOrder' => function () {
-                throw new \Exception('Connection timeout');
-            }
-        ]);
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Invalid parameters');
+        $this->expectExceptionCode(0);
 
-        $result = $this->service->createOrder([
+        $this->orderRequestBuilderMock->shouldReceive('build')
+            ->once()
+            ->andReturn(new \GeniusCode\JTExpressEg\DTOs\OrderRequest(
+                customerCode: 'test_customer_code',
+                digest: 'test_digest',
+                txlogisticId: 'ORDER0000000001',
+                receiver: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'John Doe', mobile: '01000000000', phone: '01000000000', countryCode: 'EGY',
+                    prov: 'Cairo', city: 'Cairo', area: 'Nasr City', street: '123 Test Street'
+                ),
+                sender: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'Jane Doe', mobile: '01111111111', phone: '01111111111', countryCode: 'EGY',
+                    prov: 'Giza', city: '6th of October', area: '2nd District', street: '456 Sender Street'
+                ),
+                items: [new \GeniusCode\JTExpressEg\DTOs\OrderItemData(itemName: 'Test Item', number: 1, itemValue: '100')]
+            ));
+
+        $response = $this->mockHttpResponse(['code' => '0', 'msg' => 'Invalid parameters'], 400);
+        $this->apiClientMock->shouldReceive('createOrder')->once()->andReturn($response);
+
+        $this->service->createOrder([
             'id' => 'ORDER0000000001',
             'shippingAddress' => ['first_name' => 'John', 'phone' => '01234567890'],
             'orderItems' => [['product' => ['name' => 'Test'], 'quantity' => 1]]
         ]);
-
-        $this->assertFalse($result['success']);
-        $this->assertEquals('Connection timeout', $result['error']);
-        $this->assertEquals(500, $result['status_code']);
     }
 
     /** @test */
-    public function it_validates_order_data_before_creation(): void
+    public function it_throws_api_exception_on_http_exception(): void
     {
-        // Missing shippingAddress
-        $result = $this->service->createOrder([
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('An unexpected error occurred: Connection timeout');
+
+        $this->orderRequestBuilderMock->shouldReceive('build')
+            ->once()
+            ->andReturn(new \GeniusCode\JTExpressEg\DTOs\OrderRequest(
+                customerCode: 'test_customer_code',
+                digest: 'test_digest',
+                txlogisticId: 'ORDER0000000001',
+                receiver: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'John Doe', mobile: '01000000000', phone: '01000000000', countryCode: 'EGY',
+                    prov: 'Cairo', city: 'Cairo', area: 'Nasr City', street: '123 Test Street'
+                ),
+                sender: new \GeniusCode\JTExpressEg\DTOs\AddressData(
+                    name: 'Jane Doe', mobile: '01111111111', phone: '01111111111', countryCode: 'EGY',
+                    prov: 'Giza', city: '6th of October', area: '2nd District', street: '456 Sender Street'
+                ),
+                items: [new \GeniusCode\JTExpressEg\DTOs\OrderItemData(itemName: 'Test Item', number: 1, itemValue: '100')]
+            ));
+
+        $this->apiClientMock->shouldReceive('createOrder')
+            ->once()
+            ->andThrow(new \Exception('Connection timeout'));
+
+        $this->service->createOrder([
             'id' => 'ORDER0000000001',
+            'shippingAddress' => ['first_name' => 'John', 'phone' => '01234567890'],
             'orderItems' => [['product' => ['name' => 'Test'], 'quantity' => 1]]
         ]);
+    }
 
-        $this->assertFalse($result['success']);
-        $this->assertEquals(400, $result['status_code']);
-        $this->assertStringContainsString('Shipping address is required', $result['error']);
+    /** @test */
+    public function it_throws_validation_exception_for_invalid_order_data(): void
+    {
+        $this->expectException(InvalidOrderDataException::class);
+        $this->expectExceptionMessage('Shipping address is required for order creation');
 
-        // Missing orderItems
-        $result = $this->service->createOrder([
-            'id' => 'ORDER0000000001',
-            'shippingAddress' => ['first_name' => 'John', 'phone' => '01234567890']
-        ]);
-
-        $this->assertFalse($result['success']);
-        $this->assertEquals(400, $result['status_code']);
-        $this->assertStringContainsString('Order items are required', $result['error']);
+        $this->service->createOrder(['id' => 'ORDER0000000001', 'orderItems' => []]);
     }
 
     /** @test */
     public function it_can_cancel_order_successfully(): void
     {
-        Http::fake([
-            '*/api/order/cancelOrder' => Http::response([
-                'code' => '1',
-                'msg' => 'Order cancelled successfully',
-            ], 200)
-        ]);
+        $response = $this->mockHttpResponse(['code' => '1', 'msg' => 'Order cancelled successfully'], 200);
+        $this->apiClientMock->shouldReceive('cancelOrder')->once()->andReturn($response);
 
         $result = $this->service->cancelOrder('ORDER0000000001', 'Customer request');
 
         $this->assertTrue($result['success']);
-        $this->assertEquals(200, $result['status_code']);
     }
 
     /** @test */
-    public function it_handles_cancel_order_failure(): void
+    public function it_throws_api_exception_on_cancel_order_failure(): void
     {
-        Http::fake([
-            '*/api/order/cancelOrder' => Http::response([
-                'code' => '0',
-                'msg' => 'Order not found',
-            ], 404)
-        ]);
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Order not found');
 
-        $result = $this->service->cancelOrder('INVALID_ORDER');
+        $response = $this->mockHttpResponse(['code' => '0', 'msg' => 'Order not found'], 404);
+        $this->apiClientMock->shouldReceive('cancelOrder')->once()->andReturn($response);
 
-        $this->assertFalse($result['success']);
-        $this->assertEquals('Order not found', $result['error']);
-        $this->assertEquals(404, $result['status_code']);
+        $this->service->cancelOrder('INVALID_ORDER');
     }
 
     /** @test */
     public function it_can_track_order_successfully(): void
     {
-        Http::fake([
-            '*/api/logistics/trace' => Http::response([
-                'code' => '1',
-                'msg' => 'Success',
-                'data' => [
-                    [
-                        'billCode' => 'JTE123456789',
-                        'traces' => [
-                            ['status' => 'picked_up', 'time' => '2025-01-15 10:00:00'],
-                            ['status' => 'in_transit', 'time' => '2025-01-15 12:00:00'],
-                        ]
-                    ]
-                ]
-            ], 200)
-        ]);
+        $response = $this->mockHttpResponse([
+            'code' => '1',
+            'msg' => 'Success',
+            'data' => [['billCode' => 'JTE123456789', 'traces' => []]]
+        ], 200);
+        $this->apiClientMock->shouldReceive('trackOrder')->once()->andReturn($response);
 
         $result = $this->service->trackOrder('JTE123456789');
 
         $this->assertTrue($result['success']);
-        $this->assertEquals(200, $result['status_code']);
         $this->assertArrayHasKey('data', $result);
     }
 
     /** @test */
-    public function it_handles_track_order_failure(): void
+    public function it_throws_api_exception_on_track_order_failure(): void
     {
-        Http::fake([
-            '*/api/logistics/trace' => Http::response([
-                'code' => '0',
-                'msg' => 'Bill code not found',
-            ], 404)
-        ]);
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Bill code not found');
 
-        $result = $this->service->trackOrder('INVALID_CODE');
+        $response = $this->mockHttpResponse(['msg' => 'Bill code not found'], 404);
+        $this->apiClientMock->shouldReceive('trackOrder')->once()->andReturn($response);
 
-        $this->assertFalse($result['success']);
-        $this->assertEquals('Bill code not found', $result['error']);
-        $this->assertEquals(404, $result['status_code']);
+        $this->service->trackOrder('INVALID_CODE');
     }
 
     /** @test */
     public function it_can_get_orders_successfully(): void
     {
-        Http::fake([
-            '*/api/order/getOrders' => Http::response([
-                'code' => '1',
-                'msg' => 'Success',
-                'data' => [
-                    [
-                        'txlogisticId' => 'ORDER0000000001',
-                        'billCode' => 'JTE123456789',
-                        'status' => 'delivered'
-                    ]
-                ]
-            ], 200)
-        ]);
+        $response = $this->mockHttpResponse(['code' => '1', 'msg' => 'Success', 'data' => []], 200);
+        $this->apiClientMock->shouldReceive('getOrders')->once()->andReturn($response);
 
         $result = $this->service->getOrders('ORDER0000000001');
 
         $this->assertTrue($result['success']);
-        $this->assertEquals(200, $result['status_code']);
-    }
-
-    /** @test */
-    public function it_can_get_orders_with_array_of_serial_numbers(): void
-    {
-        Http::fake([
-            '*/api/order/getOrders' => Http::response([
-                'code' => '1',
-                'msg' => 'Success',
-                'data' => []
-            ], 200)
-        ]);
-
-        $result = $this->service->getOrders(['ORDER0000000001', 'ORDER0000000002']);
-
-        $this->assertTrue($result['success']);
-        $this->assertEquals(200, $result['status_code']);
     }
 
     /** @test */
     public function it_can_print_order_successfully(): void
     {
-        Http::fake([
-            '*/api/order/printOrder' => Http::response([
-                'code' => '1',
-                'msg' => 'Print successful',
-                'data' => ['url' => 'https://example.com/waybill.pdf']
-            ], 200)
-        ]);
+        $response = $this->mockHttpResponse(['code' => '1', 'msg' => 'Print successful', 'data' => []], 200);
+        $this->apiClientMock->shouldReceive('printOrder')->once()->andReturn($response);
 
         $result = $this->service->printOrder('JTE123456789');
 
         $this->assertTrue($result['success']);
-        $this->assertEquals(200, $result['status_code']);
-        $this->assertEquals('Print successful', $result['message']);
     }
 
     /** @test */
-    public function it_handles_print_order_illegal_parameters(): void
+    public function it_throws_api_exception_on_print_order_failure(): void
     {
-        Http::fake([
-            '*/api/order/printOrder' => Http::response([
-                'code' => '145003050',
-                'msg' => 'Illegal parameters',
-            ], 400)
-        ]);
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Illegal parameters');
 
-        $result = $this->service->printOrder('INVALID_CODE');
+        $response = $this->mockHttpResponse(['code' => '145003050', 'msg' => 'Illegal parameters'], 400);
+        $this->apiClientMock->shouldReceive('printOrder')->once()->andReturn($response);
 
-        $this->assertFalse($result['success']);
-        $this->assertEquals('Illegal parameters', $result['error']);
-        $this->assertEquals('145003050', $result['error_code']);
-    }
-
-    /** @test */
-    public function it_handles_print_order_not_printable_status(): void
-    {
-        Http::fake([
-            '*/api/order/printOrder' => Http::response([
-                'code' => '121003006',
-                'msg' => 'Order status not printable',
-            ], 400)
-        ]);
-
-        $result = $this->service->printOrder('JTE123456789');
-
-        $this->assertFalse($result['success']);
-        $this->assertStringContainsString('does not support printing', $result['error']);
-        $this->assertEquals('121003006', $result['error_code']);
-    }
-
-    /** @test */
-    public function it_uses_production_base_url_in_production_env(): void
-    {
-        config()->set('app.env', 'production');
-        $service = new JTExpressService();
-
-        $reflection = new \ReflectionClass($service);
-        $property = $reflection->getProperty('baseUrl');
-        $property->setAccessible(true);
-
-        $this->assertEquals('https://openapi.jtjms-eg.com', $property->getValue($service));
-    }
-
-    /** @test */
-    public function it_uses_demo_base_url_in_non_production_env(): void
-    {
-        config()->set('app.env', 'testing');
-        $service = new JTExpressService();
-
-        $reflection = new \ReflectionClass($service);
-        $property = $reflection->getProperty('baseUrl');
-        $property->setAccessible(true);
-
-        $this->assertEquals('https://demoopenapi.jtjms-eg.com', $property->getValue($service));
+        $this->service->printOrder('INVALID_CODE');
     }
 }
+

@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://php.net)
 [![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x-red.svg)](https://laravel.com)
-[![Tests](https://img.shields.io/badge/tests-43%20passing-brightgreen.svg)](https://github.com/genius-code/jt-express-eg)
+[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen.svg)](https://github.com/genius-code/jt-express-eg)
 
 A **modern, type-safe, and production-ready** Laravel package for seamless integration with J&T Express Egypt's shipping API. Built with best practices, comprehensive testing, and developer experience in mind.
 
@@ -57,7 +57,7 @@ A **modern, type-safe, and production-ready** Laravel package for seamless integ
 Install via Composer:
 
 ```bash
-composer require genius-code/jt-express-eg:^1.0
+composer require genius-code/jt-express-eg:^2.0
 ```
 
 ### Publish Configuration (Optional)
@@ -232,6 +232,44 @@ if ($result['success']) {
         'code' => $result['code'] ?? null,
         'status' => $result['status_code']
     ]);
+}
+```
+
+### Updating an Order
+
+```php
+$orderData = [
+    'id' => 'ORDER-12345', // The ID of the order to update
+    // Include any fields that need to be updated
+    'weight' => 2.0,
+    'remark' => 'Updated: Handle with extreme care',
+    // You must include the full shipping address and order items, even if they are not changed
+    'shippingAddress' => [
+        'first_name' => 'Ahmed',
+        'last_name' => 'Mohamed',
+        'phone' => '01234567890',
+        'city' => ['name' => 'القاهرة'],
+        'state' => ['name' => 'القاهرة'],
+        'street' => 'Street Name',
+        'building' => '10',
+        'floor' => '5',
+        'area' => 'مدينة نصر',
+    ],
+    'orderItems' => [
+        [
+            'product' => ['name' => 'T-Shirt'],
+            'quantity' => 2,
+            'price_at_purchase' => '75.00'
+        ]
+    ],
+];
+
+$result = JTExpress::updateOrder($orderData);
+
+if ($result['success']) {
+    // Order updated successfully
+} else {
+    // Handle error
 }
 ```
 
@@ -420,6 +458,12 @@ Creates a new shipping order.
 
 ---
 
+### `updateOrder(array $orderData): array`
+
+Updates an existing shipping order. This method is similar to `createOrder` but sets the `operateType` to `2`.
+
+---
+
 ### `cancelOrder(string $txlogisticId, string $reason = 'Customer request'): array`
 
 Cancels an existing order.
@@ -444,7 +488,7 @@ Generates a printable waybill.
 
 ## 🧪 Testing
 
-The package includes a comprehensive test suite with **43 tests** and **139 assertions**.
+The package includes a comprehensive test suite with **53 tests** and **171 assertions**.
 
 ### Running Tests
 
@@ -462,18 +506,21 @@ The package includes a comprehensive test suite with **43 tests** and **139 asse
 ### Test Coverage
 
 ```
-Tests: 43, Assertions: 139, Failures: 0
+Tests: 53, Assertions: 171, Failures: 0
 
 Component               Tests    Status
 ──────────────────────────────────────────
-Main Service              20      ✅
+Main Service              21      ✅
 Facade                     6      ✅
 Service Provider           4      ✅
 Address Formatter          5      ✅
 Item Formatter             4      ✅
 Validator                  6      ✅
+OrderRequestBuilder        4      ✅
+OrderResponseHandler       6      ✅
+JTExpressApiClient         5      ✅
 ──────────────────────────────────────────
-TOTAL                     43      ✅ 100%
+TOTAL                     53      ✅ 100%
 ```
 
 ### Test Structure
@@ -485,9 +532,12 @@ tests/
     ├── JTExpressServiceTest.php
     ├── JTExpressServiceProviderTest.php
     ├── JTExpressFacadeTest.php
-    ├── AddressFormatterTest.php         # New
-    ├── OrderItemFormatterTest.php       # New
-    └── OrderDataValidatorTest.php       # New
+    ├── AddressFormatterTest.php
+    ├── OrderItemFormatterTest.php
+    ├── OrderDataValidatorTest.php
+    ├── OrderRequestBuilderTest.php      # New
+    ├── OrderResponseHandlerTest.php     # New
+    └── JTExpressApiClientTest.php       # New
 ```
 
 ## ⚠️ Error Handling
@@ -597,6 +647,21 @@ src/
 - 🎯 **43 Tests** with 139 assertions
 
 ## 📋 Changelog
+
+### Version 2.1.0
+
+**New Features:**
+- ✨ Added `updateOrder` method to update existing orders.
+
+**Improvements:**
+- 🔧 Refactored `OrderRequestBuilder` to be stateless and injected it into `JTExpressService`, improving testability and design.
+- 🧪 Significantly increased test coverage by adding 15 new tests for `OrderRequestBuilder`, `OrderResponseHandler`, and `JTExpressApiClient`.
+- 📚 Added `ELOQUENT_INTEGRATION.md` guide.
+- 🧹 Removed application-specific code from `app/` directory for better reusability.
+
+**Breaking Changes:** None.
+
+---
 
 ### Version 2.0.0 (Latest) - Major Refactoring
 

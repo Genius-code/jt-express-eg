@@ -19,16 +19,13 @@ class OrderRequestBuilder
     private const DEFAULT_OFFER_FEE = '0';
     private const CURRENCY = 'EGP';
 
-    public function __construct(
-        private readonly string $customerCode,
-        private readonly string $digest
-    ) {}
 
-    public function build(array $orderData, AddressData $receiver, AddressData $sender, array $items): OrderRequest
+
+    public function build(string $customerCode, string $digest, array $orderData, AddressData $receiver, AddressData $sender, array $items): OrderRequest
     {
         return new OrderRequest(
-            customerCode: $this->customerCode,
-            digest: $this->digest,
+            customerCode: $customerCode,
+            digest: $digest,
             txlogisticId: $this->generateTxLogisticId($orderData),
             receiver: $receiver,
             sender: $sender,
