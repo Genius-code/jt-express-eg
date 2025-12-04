@@ -4,7 +4,6 @@ namespace GeniusCode\JTExpressEg;
 
 use GeniusCode\JTExpressEg\Builders\OrderRequestBuilder;
 use GeniusCode\JTExpressEg\Exceptions\ApiException;
-use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
 use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
 use GeniusCode\JTExpressEg\Formatters\OrderItemFormatter;
 use GeniusCode\JTExpressEg\Handlers\OrderResponseHandler;
@@ -38,28 +37,7 @@ class JTExpressService
      */
     public function createOrder(array $orderData): array
     {
-        $this->validator->validate($orderData);
-
-        $bizContentDigest = $this->calculateBizContentDigest(
-            $this->customerCode,
-            $this->customerPwd,
-            $this->privateKey
-        );
-
-        $receiver = $this->addressFormatter->formatReceiver($orderData['shippingAddress'] ?? []);
-        $sender = $this->addressFormatter->formatSender();
-        $items = $this->itemFormatter->format($orderData['orderItems'] ?? []);
-
-        $orderRequest = $this->orderRequestBuilder->build(
-            $this->customerCode,
-            $bizContentDigest,
-            $orderData,
-            $receiver,
-            $sender,
-            $items
-        );
-
-        return $this->sendRequest('createOrder', $orderRequest->toArray());
+        return $this->extracted($orderData);
     }
 
     /**
@@ -67,34 +45,13 @@ class JTExpressService
      *
      * @param array $orderData
      * @return array
-     * @throws ApiException|InvalidOrderDataException
+     * @throws ApiException
      */
     public function updateOrder(array $orderData): array
     {
         $orderData['operateType'] = 2; // Set operateType to 2 for updating order
 
-        $this->validator->validate($orderData);
-
-        $bizContentDigest = $this->calculateBizContentDigest(
-            $this->customerCode,
-            $this->customerPwd,
-            $this->privateKey
-        );
-
-        $receiver = $this->addressFormatter->formatReceiver($orderData['shippingAddress'] ?? []);
-        $sender = $this->addressFormatter->formatSender();
-        $items = $this->itemFormatter->format($orderData['orderItems'] ?? []);
-
-        $orderRequest = $this->orderRequestBuilder->build(
-            $this->customerCode,
-            $bizContentDigest,
-            $orderData,
-            $receiver,
-            $sender,
-            $items
-        );
-
-        return $this->sendRequest('createOrder', $orderRequest->toArray());
+        return $this->extracted($orderData);
     }
 
     /**
@@ -288,5 +245,36 @@ class JTExpressService
     protected function generateTimestamp(): string
     {
         return strval(round(microtime(true) * 1000));
+    }
+
+    /**
+     * @param array $orderData
+     * @return array
+     * @throws ApiException
+     */
+    private function extracted(array $orderData): array
+    {
+        $this->validator->validate($orderData);
+
+        $bizContentDigest = $this->calculateBizContentDigest(
+            $this->customerCode,
+            $this->customerPwd,
+            $this->privateKey
+        );
+
+        $receiver = $this->addressFormatter->formatReceiver($orderData['shippingAddress'] ?? []);
+        $sender = $this->addressFormatter->formatSender();
+        $items = $this->itemFormatter->format($orderData['orderItems'] ?? []);
+
+        $orderRequest = $this->orderRequestBuilder->build(
+            $this->customerCode,
+            $bizContentDigest,
+            $orderData,
+            $receiver,
+            $sender,
+            $items
+        );
+
+        return $this->sendRequest('createOrder', $orderRequest->toArray());
     }
 }
