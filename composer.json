@@ -8,7 +8,7 @@
     "illuminate/support": "^9.0|^10.0|^11.0|^12.0|^13.0",
     "illuminate/http": "^9.0|^10.0|^11.0|^12.0|^13.0",
     "illuminate/contracts": "^9.0|^10.0|^11.0|^12.0|^13.0",
-    "guzzlehttp/guzzle": "^7.15.2"
+    "guzzlehttp/guzzle": "^7.15.2|^8.0.1"
   },
   "require-dev": {
     "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
