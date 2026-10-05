@@ -6,7 +6,31 @@ on:
   pull_request:
 
 jobs:
+  constraints:
+    runs-on: ubuntu-latest
+    name: Check composer.json constraints
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Validate composer.json
+        run: composer validate --strict --no-check-lock
+
+      - name: Reject exact pinned versions
+        run: |
+          pinned=$(jq -r '(.require + ."require-dev") | to_entries[]
+            | select(.value | test("^v?[0-9]+(\\.[0-9]+)*$"))
+            | "  \(.key): \(.value)"' composer.json)
+          if [ -n "$pinned" ]; then
+            echo "::error file=composer.json::Exact pinned versions found. Use version ranges (e.g. ^7.0) instead."
+            echo "$pinned"
+            exit 1
+          fi
+          echo "No pinned versions found."
+
   tests:
+    needs: constraints
     runs-on: ubuntu-latest
 
     strategy:
