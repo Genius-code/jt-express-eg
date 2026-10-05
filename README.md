@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
 [![Laravel](https://img.shields.io/badge/Laravel-9.x%20--%2013.x-red.svg)](https://laravel.com)
-[![Tests](https://img.shields.io/badge/tests-52%20passing-brightgreen.svg)](https://github.com/genius-code/jt-express-eg)
+[![Tests](https://github.com/Genius-code/jt-express-eg/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Genius-code/jt-express-eg/actions/workflows/tests.yml)
 
 A **modern, type-safe, and production-ready** Laravel package for seamless integration with J&T Express Egypt's shipping API. Built with best practices, comprehensive testing, and developer experience in mind.
 
