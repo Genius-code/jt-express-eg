@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\Builders\OrderRequestBuilder;
 use GeniusCode\JTExpressEg\Exceptions\ApiException;
 use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
@@ -63,7 +64,7 @@ class JTExpressServiceTest extends TestCase
         return $response;
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_order_successfully(): void
     {
         $response = $this->mockHttpResponse([
@@ -111,7 +112,7 @@ class JTExpressServiceTest extends TestCase
         $this->assertEquals('JTE123456789', $result['waybill_code']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_order_successfully(): void
     {
         $response = $this->mockHttpResponse([
@@ -164,12 +165,12 @@ class JTExpressServiceTest extends TestCase
         $this->assertEquals('JTE987654321', $result['waybill_code']);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_api_exception_on_create_order_failure(): void
     {
         $this->expectException(ApiException::class);
         $this->expectExceptionMessage('Invalid parameters');
-        $this->expectExceptionCode(0);
+        $this->expectExceptionCode(400);
 
         $this->orderRequestBuilderMock->shouldReceive('build')
             ->once()
@@ -198,7 +199,7 @@ class JTExpressServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_api_exception_on_http_exception(): void
     {
         $this->expectException(ApiException::class);
@@ -232,7 +233,7 @@ class JTExpressServiceTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_validation_exception_for_invalid_order_data(): void
     {
         $this->expectException(InvalidOrderDataException::class);
@@ -241,7 +242,7 @@ class JTExpressServiceTest extends TestCase
         $this->service->createOrder(['id' => 'ORDER0000000001', 'orderItems' => []]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_cancel_order_successfully(): void
     {
         $response = $this->mockHttpResponse(['code' => '1', 'msg' => 'Order cancelled successfully'], 200);
@@ -252,7 +253,7 @@ class JTExpressServiceTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_api_exception_on_cancel_order_failure(): void
     {
         $this->expectException(ApiException::class);
@@ -264,7 +265,7 @@ class JTExpressServiceTest extends TestCase
         $this->service->cancelOrder('INVALID_ORDER');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_track_order_successfully(): void
     {
         $response = $this->mockHttpResponse([
@@ -280,7 +281,7 @@ class JTExpressServiceTest extends TestCase
         $this->assertArrayHasKey('data', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_api_exception_on_track_order_failure(): void
     {
         $this->expectException(ApiException::class);
@@ -292,7 +293,7 @@ class JTExpressServiceTest extends TestCase
         $this->service->trackOrder('INVALID_CODE');
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_orders_successfully(): void
     {
         $response = $this->mockHttpResponse(['code' => '1', 'msg' => 'Success', 'data' => []], 200);
@@ -303,7 +304,7 @@ class JTExpressServiceTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_print_order_successfully(): void
     {
         $response = $this->mockHttpResponse(['code' => '1', 'msg' => 'Print successful', 'data' => []], 200);
@@ -314,7 +315,7 @@ class JTExpressServiceTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_api_exception_on_print_order_failure(): void
     {
         $this->expectException(ApiException::class);

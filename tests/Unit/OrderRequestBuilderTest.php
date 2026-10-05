@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\Builders\OrderRequestBuilder;
 use GeniusCode\JTExpressEg\DTOs\AddressData;
 use GeniusCode\JTExpressEg\Tests\TestCase;
@@ -48,7 +49,7 @@ class OrderRequestBuilderTest extends TestCase
         Carbon::setTestNow();
     }
 
-    /** @test */
+    #[Test]
     public function it_builds_order_request_with_minimal_data()
     {
         $orderData = [
@@ -71,7 +72,7 @@ class OrderRequestBuilderTest extends TestCase
         $this->assertEquals('2025-01-02 12:00:00', $orderRequest->sendEndTime);
     }
 
-    /** @test */
+    #[Test]
     public function it_builds_order_request_with_all_data()
     {
         $orderData = [
@@ -115,7 +116,7 @@ class OrderRequestBuilderTest extends TestCase
         $this->assertEquals('5', $orderRequest->totalQuantity);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_txlogisticid_if_not_provided()
     {
         $orderData = [];
@@ -124,7 +125,7 @@ class OrderRequestBuilderTest extends TestCase
         $this->assertEquals(15, strlen($orderRequest->txlogisticId));
     }
 
-    /** @test */
+    #[Test]
     public function it_uses_provided_id_as_txlogisticid()
     {
         $orderData = ['id' => 'MY-CUSTOM-ID'];

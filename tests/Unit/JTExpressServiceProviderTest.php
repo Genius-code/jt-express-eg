@@ -2,12 +2,13 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\JTExpressService;
 use GeniusCode\JTExpressEg\Tests\TestCase;
 
 class JTExpressServiceProviderTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function it_registers_jt_express_service_as_singleton(): void
     {
         $service1 = app(JTExpressService::class);
@@ -17,7 +18,7 @@ class JTExpressServiceProviderTest extends TestCase
         $this->assertSame($service1, $service2);
     }
 
-    /** @test */
+    #[Test]
     public function it_registers_service_with_alias(): void
     {
         $service = app('jt-express');
@@ -25,7 +26,7 @@ class JTExpressServiceProviderTest extends TestCase
         $this->assertInstanceOf(JTExpressService::class, $service);
     }
 
-    /** @test */
+    #[Test]
     public function it_merges_config_from_package(): void
     {
         $this->assertNotNull(config('jt-express.apiAccount'));
@@ -34,7 +35,7 @@ class JTExpressServiceProviderTest extends TestCase
         $this->assertNotNull(config('jt-express.customerPwd'));
     }
 
-    /** @test */
+    #[Test]
     public function it_loads_sender_configuration(): void
     {
         $this->assertIsArray(config('jt-express.sender'));

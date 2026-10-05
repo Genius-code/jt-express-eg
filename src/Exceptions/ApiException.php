@@ -8,9 +8,10 @@ class ApiException extends JTExpressException
         string $message,
         public readonly ?string $apiCode = null,
         public readonly int $statusCode = 0,
-        public readonly ?array $responseData = null
+        public readonly ?array $responseData = null,
+        ?\Throwable $previous = null
     ) {
-        parent::__construct($message, $statusCode);
+        parent::__construct($message, $statusCode, $previous);
     }
 
     public static function fromResponse(array $response, int $statusCode): self

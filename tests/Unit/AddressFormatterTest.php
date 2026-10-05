@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\DTOs\AddressData;
 use GeniusCode\JTExpressEg\Formatters\AddressFormatter;
 use GeniusCode\JTExpressEg\Tests\TestCase;
@@ -16,7 +17,7 @@ class AddressFormatterTest extends TestCase
         $this->formatter = new AddressFormatter();
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_receiver_data_from_array(): void
     {
         $shippingAddress = [
@@ -45,7 +46,7 @@ class AddressFormatterTest extends TestCase
         $this->assertEquals('31.2357', $result->longitude);
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_receiver_data_with_empty_address(): void
     {
         $result = $this->formatter->formatReceiver([]);
@@ -56,7 +57,7 @@ class AddressFormatterTest extends TestCase
         $this->assertEquals('EGY', $result->countryCode);
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_receiver_data_from_object(): void
     {
         $shippingAddress = (object) [
@@ -80,7 +81,7 @@ class AddressFormatterTest extends TestCase
         $this->assertEquals('jane@example.com', $result->mailBox);
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_sender_data_from_config(): void
     {
         config()->set('jt-express.sender.name', 'Company Name');
@@ -96,7 +97,7 @@ class AddressFormatterTest extends TestCase
         $this->assertEquals('EGY', $result->countryCode);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_address_data_as_array(): void
     {
         $result = $this->formatter->formatReceiver([

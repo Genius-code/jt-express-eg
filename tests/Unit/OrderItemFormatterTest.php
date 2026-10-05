@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\DTOs\OrderItemData;
 use GeniusCode\JTExpressEg\Formatters\OrderItemFormatter;
 use GeniusCode\JTExpressEg\Tests\TestCase;
@@ -16,7 +17,7 @@ class OrderItemFormatterTest extends TestCase
         $this->formatter = new OrderItemFormatter();
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_items_from_array(): void
     {
         $items = [
@@ -43,7 +44,7 @@ class OrderItemFormatterTest extends TestCase
         $this->assertEquals('EGP', $result[0]->priceCurrency);
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_items_with_empty_array(): void
     {
         $result = $this->formatter->format([]);
@@ -56,7 +57,7 @@ class OrderItemFormatterTest extends TestCase
         $this->assertEquals('0', $result[0]->itemValue);
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_items_from_object(): void
     {
         $items = [
@@ -76,7 +77,7 @@ class OrderItemFormatterTest extends TestCase
         $this->assertEquals('75', $result[0]->itemValue);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_order_item_data_as_array(): void
     {
         $items = [

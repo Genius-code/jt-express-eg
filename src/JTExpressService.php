@@ -96,9 +96,10 @@ class JTExpressService
                 ];
             }
             throw new ApiException(
-                $responseData['msg'] ?? 'Unknown error while tracking order',
-                $response->status(),
-                $responseData
+                message: $responseData['msg'] ?? 'Unknown error while tracking order',
+                apiCode: isset($responseData['code']) ? (string) $responseData['code'] : null,
+                statusCode: $response->status(),
+                responseData: $responseData
             );
         });
     }
@@ -166,7 +167,12 @@ class JTExpressService
                 $errorMessage = 'Order status does not support printing. Please check if the order has been picked up or is in transit.';
             }
 
-            throw new ApiException($errorMessage, $response->status(), $responseData, (int) $errorCode);
+            throw new ApiException(
+                message: $errorMessage,
+                apiCode: $errorCode !== null ? (string) $errorCode : null,
+                statusCode: $response->status(),
+                responseData: $responseData
+            );
         });
     }
 
@@ -208,11 +214,9 @@ class JTExpressService
 
             // Re-throw as a generic ApiException to standardize client-facing errors
             throw new ApiException(
-                "An unexpected error occurred: " . $e->getMessage(),
-                500,
-                null,
-                $e->getCode(),
-                $e
+                message: "An unexpected error occurred: " . $e->getMessage(),
+                statusCode: 500,
+                previous: $e
             );
         }
     }

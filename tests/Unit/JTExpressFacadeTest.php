@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\Facades\JTExpress;
 use GeniusCode\JTExpressEg\JTExpressService;
 use GeniusCode\JTExpressEg\Tests\TestCase;
@@ -18,7 +19,7 @@ class JTExpressFacadeTest extends TestCase
         Log::shouldReceive('warning')->andReturn(null);
     }
 
-    /** @test */
+    #[Test]
     public function it_resolves_to_jt_express_service(): void
     {
         $resolved = JTExpress::getFacadeRoot();
@@ -26,7 +27,7 @@ class JTExpressFacadeTest extends TestCase
         $this->assertInstanceOf(JTExpressService::class, $resolved);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_call_create_order_through_facade(): void
     {
         Http::fake([
@@ -50,7 +51,7 @@ class JTExpressFacadeTest extends TestCase
         $this->assertEquals('JTE123456789', $result['waybill_code']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_call_cancel_order_through_facade(): void
     {
         Http::fake([
@@ -65,7 +66,7 @@ class JTExpressFacadeTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_call_track_order_through_facade(): void
     {
         Http::fake([
@@ -81,7 +82,7 @@ class JTExpressFacadeTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_call_get_orders_through_facade(): void
     {
         Http::fake([
@@ -97,7 +98,7 @@ class JTExpressFacadeTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_call_print_order_through_facade(): void
     {
         Http::fake([

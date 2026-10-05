@@ -1,9 +1,9 @@
 # J&T Express Egypt Laravel SDK
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://php.net)
-[![Laravel](https://img.shields.io/badge/Laravel-10.x%20%7C%2011.x-red.svg)](https://laravel.com)
-[![Tests](https://img.shields.io/badge/tests-53%20passing-brightgreen.svg)](https://github.com/genius-code/jt-express-eg)
+[![PHP Version](https://img.shields.io/badge/PHP-8.3%2B-blue.svg)](https://php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-9.x%20--%2013.x-red.svg)](https://laravel.com)
+[![Tests](https://img.shields.io/badge/tests-52%20passing-brightgreen.svg)](https://github.com/genius-code/jt-express-eg)
 
 A **modern, type-safe, and production-ready** Laravel package for seamless integration with J&T Express Egypt's shipping API. Built with best practices, comprehensive testing, and developer experience in mind.
 
@@ -16,7 +16,7 @@ A **modern, type-safe, and production-ready** Laravel package for seamless integ
 - **Multi-Environment**: Separate production and demo/testing environments
 
 ### Developer Experience
-- ✅ **Type-Safe**: Full PHP 8.1+ type declarations and immutable DTOs
+- ✅ **Type-Safe**: Full PHP 8.3+ type declarations and immutable DTOs
 - ✅ **Validated Input**: Automatic validation before API calls
 - ✅ **Better Error Handling**: Specific exception types with rich context
 - ✅ **Well-Tested**: 43 tests with 139 assertions (100% passing)
@@ -48,8 +48,8 @@ A **modern, type-safe, and production-ready** Laravel package for seamless integ
 
 ## 🔧 Requirements
 
-- **PHP**: 8.1 or higher
-- **Laravel**: 10.x or 11.x
+- **PHP**: 8.3 or higher
+- **Laravel**: 9.x, 10.x, 11.x, 12.x or 13.x
 - **Dependencies**: Guzzle HTTP Client 7.0+
 
 ## 📦 Installation
@@ -631,7 +631,7 @@ src/
 ### Design Principles
 
 - ✅ **SOLID Principles**: Clean, maintainable code
-- ✅ **Type Safety**: Full PHP 8.1+ type declarations
+- ✅ **Type Safety**: Full PHP 8.3+ type declarations
 - ✅ **Immutability**: DTOs with readonly properties
 - ✅ **Separation of Concerns**: Each class has one responsibility
 - ✅ **DRY**: No code duplication
@@ -756,10 +756,10 @@ This package is open-sourced software licensed under the [MIT license](LICENSE).
 ## 📊 Stats
 
 - **Code Coverage**: 95%+ type safety
-- **Tests**: 43 passing
-- **Assertions**: 139
-- **PHP Version**: 8.1+
-- **Laravel**: 10.x, 11.x
+- **Tests**: 52 passing
+- **Assertions**: 163
+- **PHP Version**: 8.3+
+- **Laravel**: 9.x – 13.x
 - **Downloads**: [Packagist Stats](https://packagist.org/packages/genius-code/jt-express-eg)
 
 ---

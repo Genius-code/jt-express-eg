@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\Exceptions\ApiException;
 use GeniusCode\JTExpressEg\Handlers\OrderResponseHandler;
 use GeniusCode\JTExpressEg\Tests\TestCase;
@@ -27,7 +28,7 @@ class OrderResponseHandlerTest extends TestCase
         return $response;
     }
 
-    /** @test */
+    #[Test]
     public function handle_with_exception_returns_success_payload_for_successful_response()
     {
         $responseData = [
@@ -53,7 +54,7 @@ class OrderResponseHandlerTest extends TestCase
         $this->assertEquals($responseData, $result['data']);
     }
 
-    /** @test */
+    #[Test]
     public function handle_with_exception_throws_api_exception_for_failed_api_response()
     {
         $this->expectException(ApiException::class);
@@ -65,7 +66,7 @@ class OrderResponseHandlerTest extends TestCase
         $this->handler->handleWithException($response);
     }
 
-    /** @test */
+    #[Test]
     public function handle_with_exception_throws_api_exception_for_http_error_response()
     {
         $this->expectException(ApiException::class);
@@ -77,7 +78,7 @@ class OrderResponseHandlerTest extends TestCase
         $this->handler->handleWithException($response);
     }
 
-    /** @test */
+    #[Test]
     public function handle_returns_success_array_for_successful_response()
     {
         $responseData = ['code' => '1', 'msg' => 'Success', 'data' => []];
@@ -89,7 +90,7 @@ class OrderResponseHandlerTest extends TestCase
         $this->assertEquals(200, $result['status_code']);
     }
 
-    /** @test */
+    #[Test]
     public function handle_returns_error_array_for_failed_api_response()
     {
         $responseData = ['code' => '101', 'msg' => 'Order not found'];
@@ -102,7 +103,7 @@ class OrderResponseHandlerTest extends TestCase
         $this->assertEquals('101', $result['code']);
     }
 
-    /** @test */
+    #[Test]
     public function handle_returns_error_array_for_http_error_response()
     {
         $responseData = ['msg' => 'Internal Server Error'];

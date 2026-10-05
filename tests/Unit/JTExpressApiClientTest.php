@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\Http\JTExpressApiClient;
 use GeniusCode\JTExpressEg\Tests\TestCase;
 use Illuminate\Support\Facades\Http;
@@ -20,7 +21,7 @@ class JTExpressApiClientTest extends TestCase
         Log::shouldReceive('info');
     }
 
-    /** @test */
+    #[Test]
     public function it_sends_create_order_request_correctly()
     {
         $bizContent = '{"key":"value"}';
@@ -36,7 +37,7 @@ class JTExpressApiClientTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_sends_cancel_order_request_correctly()
     {
         $bizContent = '{"key":"value"}';
@@ -52,7 +53,7 @@ class JTExpressApiClientTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_sends_track_order_request_correctly()
     {
         $bizContent = '{"key":"value"}';
@@ -68,7 +69,7 @@ class JTExpressApiClientTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_sends_get_orders_request_correctly()
     {
         $bizContent = '{"key":"value"}';
@@ -84,7 +85,7 @@ class JTExpressApiClientTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_sends_print_order_request_correctly()
     {
         $bizContent = '{"key":"value"}';

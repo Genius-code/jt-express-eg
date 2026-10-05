@@ -2,6 +2,7 @@
 
 namespace GeniusCode\JTExpressEg\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Test;
 use GeniusCode\JTExpressEg\Exceptions\InvalidOrderDataException;
 use GeniusCode\JTExpressEg\Validators\OrderDataValidator;
 use GeniusCode\JTExpressEg\Tests\TestCase;
@@ -16,7 +17,7 @@ class OrderDataValidatorTest extends TestCase
         $this->validator = new OrderDataValidator();
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_when_shipping_address_is_missing(): void
     {
         $this->expectException(InvalidOrderDataException::class);
@@ -27,7 +28,7 @@ class OrderDataValidatorTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_when_order_items_are_missing(): void
     {
         $this->expectException(InvalidOrderDataException::class);
@@ -38,7 +39,7 @@ class OrderDataValidatorTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_passes_validation_with_valid_data(): void
     {
         $validData = [
@@ -52,7 +53,7 @@ class OrderDataValidatorTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_for_negative_weight(): void
     {
         $this->expectException(InvalidOrderDataException::class);
@@ -63,7 +64,7 @@ class OrderDataValidatorTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_for_negative_dimensions(): void
     {
         $this->expectException(InvalidOrderDataException::class);
@@ -73,7 +74,7 @@ class OrderDataValidatorTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_passes_optional_validation_with_valid_values(): void
     {
         $this->validator->validateOptional([

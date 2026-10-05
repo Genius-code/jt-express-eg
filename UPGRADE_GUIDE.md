@@ -297,7 +297,7 @@ If you encounter any issues:
 1. Check that `shippingAddress` and `orderItems` are provided
 2. Review validation error messages
 3. Check logs for detailed error information
-4. Ensure PHP >= 8.1
+4. Ensure PHP >= 8.3
 
 ## Summary
 
